@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Ledger Tool</title>
+  
+  <!-- Pyodide runtime -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background-color: #0f172a;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 950px;
+    }
+    header {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    h1 { margin: 0 0 6px 0; color: #38bdf8; font-size: 1.6rem; }
+    p { margin: 0; color: #94a3b8; font-size: 0.95rem; }
+    
+    /* Terminal Console */
+    #terminal-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      font-family: "Courier New", Courier, monospace;
+    }
+    #console-output {
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 280px;
+      max-height: 480px;
+      overflow-y: auto;
+      color: #34d399;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .input-line {
+      display: flex;
+      margin-top: 12px;
+      gap: 8px;
+    }
+    #user-input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      color: #f8fafc;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    #user-input:focus {
+      border-color: #38bdf8;
+    }
+    #submit-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 0 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    #submit-btn:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    #plot-container {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    #plot-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: white;
+    }
+    .status {
+      color: #fbbf24;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Family Ledger Tool</h1>
+      <p>Aashvi Bansal | Family Financial Health Tool (Running in Browser)</p>
+    </header>
+
+    <div id="terminal-box">
+      <div id="console-output"><span class="status">Loading Python runtime and dependencies (matplotlib, numpy)... please wait.</span>\n</div>
+      
+      <form class="input-line" id="input-form" onsubmit="handleInput(event)">
+        <input type="text" id="user-input" placeholder="Type your input and press Enter..." disabled autocomplete="off" />
+        <button id="submit-btn" type="submit" disabled>Send</button>
+      </form>
+    </div>
+
+    <div id="plot-container"></div>
+  </div>
+
+  <script>
+    let pyodideInstance = null;
+    let inputResolver = null;
+    const outputEl = document.getElementById('console-output');
+    const inputEl = document.getElementById('user-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const plotContainer = document.getElementById('plot-container');
+
+    function appendOutput(text) {
+      outputEl.textContent += text;
+      outputEl.scrollTop = outputEl.scrollHeight;
+    }
+
+    async function jsInput(promptText) {
+      if (promptText) appendOutput(promptText);
+      inputEl.disabled = false;
+      submitBtn.disabled = false;
+      inputEl.focus();
+
+      return new Promise((resolve) => {
+        inputResolver = resolve;
+      });
+    }
+
+    function handleInput(e) {
+      e.preventDefault();
+      if (!inputResolver) return;
+
+      const val = inputEl.value;
+      appendOutput(val + "\n");
+      inputEl.value = "";
+      inputEl.disabled = true;
+      submitBtn.disabled = true;
+
+      const resolve = inputResolver;
+      inputResolver = null;
+      resolve(val);
+    }
+
+    function renderPlotImage(base64Png) {
+      plotContainer.innerHTML = `<img src="data:image/png;base64,${base64Png}" alt="Financial Health Dashboard" />`;
+    }
+
+    const pythonCode = `
+import sys
+import io
+import base64
+import js
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+async def web_input(prompt=""):
+    val = await js.jsInput(prompt)
+    return str(val)
+
+# MODULE 1 - INPUT HANDLING
+async def get_rupees(prompt):
+    while True:
+        try:
+            val = await web_input(prompt + " (₹): ")
+            return float(val) if val.strip() else 0.0
+        except ValueError:
+            print("Invalid amount. Please enter a number and try again.")
+
+# MODULE 2 - DATA COLLECTION
+async def collect_data():
+    print("\\n=== FAMILY FINANCIAL HEALTH CALCULATOR ===")
+    print("Built by Aashvi Bansal | The Family Ledger Project\\n")
+    income = await get_rupees('Total monthly household income')
+    print('\\nEnter monthly expenses (press Enter to skip any):')
+    expenses = {
+        'Housing (rent/EMI)': await get_rupees('Housing/rent/EMI'),
+        'Food & groceries': await get_rupees('Food & groceries'),
+        'Education fees': await get_rupees('Education fees'),
+        'Utilities': await get_rupees('Utilities (electricity/gas/water)'),
+        'Transport': await get_rupees('Transport'),
+        'Mobile & internet': await get_rupees('Mobile & internet'),
+        'Medical': await get_rupees('Medical'),
+        'Clothing': await get_rupees('Clothing & personal care'),
+        'Entertainment': await get_rupees('Entertainment & dining out'),
+        'Insurance/LIC': await get_rupees('Insurance / LIC premiums'),
+        'Loan EMIs': await get_rupees('Loan EMIs'),
+    }
+    monthly_savings = await get_rupees('Current monthly savings / RD / SIP (optional)')
+    return income, expenses, monthly_savings
+
+# MODULE 3 - BUDGET ANALYSIS
+def analyse(income, expenses):
+    total_exp = sum(expenses.values())
+    surplus = income - total_exp
+    remaining_pct = (surplus / income * 100) if income else 0
+    expense_pct = (total_exp / income * 100) if income else 0
+
+    fixed = (expenses['Housing (rent/EMI)'] +
+             expenses['Education fees'] +
+             expenses['Insurance/LIC'] +
+             expenses['Loan EMIs'])
+
+    variable = (expenses['Food & groceries'] +
+                expenses['Utilities'] +
+                expenses['Transport'] +
+                expenses['Mobile & internet'] +
+                expenses['Medical'])
+
+    discretionary = (expenses['Clothing'] +
+                     expenses['Entertainment'])
+
+    fixed_pct = (fixed / income * 100) if income else 0
+    variable_pct = (variable / income * 100) if income else 0
+    discretionary_pct = (discretionary / income * 100) if income else 0
+
+    potential_monthly_saving = variable * 0.10
+    potential_annual_saving = potential_monthly_saving * 12
+
+    return {
+        'income': income,
+        'total_exp': total_exp,
+        'surplus': surplus,
+        'remaining_pct': remaining_pct,
+        'expense_pct': expense_pct,
+        'fixed': fixed,
+        'variable': variable,
+        'discretionary': discretionary,
+        'fixed_pct': fixed_pct,
+        'variable_pct': variable_pct,
+        'discretionary_pct': discretionary_pct,
+        'potential_monthly_saving': potential_monthly_saving,
+        'potential_annual_saving': potential_annual_saving,
+    }
+
+def show_analysis(results):
+    print("\\n=== BUDGET ANALYSIS ===")
+    print(f"\\nMonthly income: ₹{results['income']:,.0f}")
+    print(f"Monthly expenses: ₹{results['total_exp']:,.0f}")
+    print(f"Money remaining: ₹{results['surplus']:,.0f}")
+    print(f"\\nIncome used for expenses: {results['expense_pct']:.1f}%")
+    print(f"Income remaining: {results['remaining_pct']:.1f}%")
+    print("\\n--- EXPENSE STRUCTURE ---")
+    print(f"Fixed expenses: ₹{results['fixed']:,.0f} ({results['fixed_pct']:.1f}%)")
+    print(f"Variable essential expenses: ₹{results['variable']:,.0f} ({results['variable_pct']:.1f}%)")
+    print(f"Discretionary expenses: ₹{results['discretionary']:,.0f} ({results['discretionary_pct']:.1f}%)")
+    print("\\n--- POTENTIAL IMPROVEMENT SCENARIO ---")
+    print("If variable expenses were reduced by 10%:")
+    print(f"Potential amount freed per month: ₹{results['potential_monthly_saving']:,.0f}")
+    print(f"Potential amount freed per year: ₹{results['potential_annual_saving']:,.0f}")
+
+# MODULE 4 - COMPOUNDING PROJECTOR
+def compound(monthly, years=5, annual_rate=0.07):
+    r = annual_rate / 12
+    n = years * 12
+    if r == 0: return monthly * n
+    return monthly * ((1 + r) ** n - 1) / r
+
+def project_savings(monthly_savings, result):
+    potential = result['potential_monthly_saving']
+    discretionary = result['discretionary']
+    discretionary_pct = result['discretionary_pct']
+    scenarios = []
+
+    if monthly_savings > 0:
+        scenarios.append(('Current savings', monthly_savings))
+        moderate = monthly_savings + potential
+        scenarios.append(('+ 10% variable reduction', moderate))
+        if discretionary_pct > 20:
+            discretionary_reduction = discretionary * 0.15
+            optimised = monthly_savings + potential + discretionary_reduction
+            scenarios.append(('Optimised scenario', optimised))
+    else:
+        scenarios.append(('Illustrative: 10% variable reduction', potential))
+        if discretionary_pct > 20:
+            discretionary_reduction = discretionary * 0.15
+            optimised = potential + discretionary_reduction
+            scenarios.append(('Illustrative: variable + discretionary reduction', optimised))
+
+    print("\\n=== 5-YEAR COMPOUNDING PROJECTION ===")
+    print("Assumed annual return: 7%")
+    print("Projection period: 5 years")
+    if monthly_savings == 0:
+        print("Current monthly savings were not provided.")
+        print("The projection is illustrative.")
+    for label, monthly in scenarios:
+        fv = compound(monthly)
+        print(f"\\n{label}:\\n  ₹{monthly:,.0f}/month → ₹{fv:,.0f} after 5 years")
+    return scenarios
+
+# MODULE 5 - GOVERNMENT SCHEME ELIGIBILITY
+def check_pmjay_senior(age_70_plus):
+    if age_70_plus:
+        print("\\nPM-JAY 70+ — Potentially relevant.")
+        print("A household member aged 70+ meets the age criterion.")
+        return True
+    else:
+        print("\\nPM-JAY 70+ — Does not appear applicable.")
+        return False
+
+async def check_surya_ghar():
+    print("\\n=== PM SURYA GHAR: MUFT BIJLI YOJANA ===")
+    while True:
+        elec = (await web_input("Does the household have a residential electricity connection? (yes/no): ")).strip().lower()
+        if elec == "yes": break
+        elif elec == "no": return False
+
+    while True:
+        rooftop = (await web_input("Does the household have a suitable rooftop/location for solar installation? (yes/no): ")).strip().lower()
+        if rooftop == "yes": break
+        elif rooftop == "no": return False
+
+    while True:
+        subsidy = (await web_input("Has the household already received PM Surya Ghar rooftop-solar subsidy? (yes/no): ")).strip().lower()
+        if subsidy == "yes": return False
+        elif subsidy == "no": break
+
+    print("\\nPM Surya Ghar — Potentially relevant for further verification.")
+    return True
+
+async def check_pmay_u20(income):
+    print("\\n=== PMAY-U 2.0 — HOUSING SCREENING ===")
+    if income * 12 > 900000:
+        print("\\nPMAY-U 2.0 — Does not appear applicable based on income.")
+        return False
+
+    while True:
+        urban = (await web_input("Does the household live in an urban area? (yes/no): ")).strip().lower()
+        if urban == "yes": break
+        elif urban == "no": return False
+
+    while True:
+        pucca = (await web_input("Does the family currently own a pucca house anywhere in India? (yes/no): ")).strip().lower()
+        if pucca == "no": break
+        elif pucca == "yes": return False
+
+    while True:
+        prev = (await web_input("Has the family received a government housing benefit during the last 20 years? (yes/no): ")).strip().lower()
+        if prev == "no": break
+        elif prev == "yes": return False
+
+    print("\\nPMAY-U 2.0 — Potentially relevant for further verification.")
+    return True
+
+async def run_government_scheme_screening(income):
+    print("\\n========================================")
+    print(" GOVERNMENT SCHEME OPPORTUNITY CHECK")
+    print("========================================")
+    results = {}
+    
+    while True:
+        try:
+            num_str = await web_input("\\nHow many household members do you want to screen? ")
+            number = int(num_str)
+            if number > 0: break
+        except ValueError:
+            print("Please enter a whole number.")
+
+    members = []
+    for i in range(number):
+        print(f"\\n--- Household Member {i + 1} ---")
+        name = (await web_input("Enter a name or label (e.g. Mother, Father, Grandma): ")).strip()
+        while True:
+            try:
+                age = int(await web_input(f"Enter {name}'s age: "))
+                if age >= 0: break
+            except ValueError:
+                print("Please enter age as a number.")
+        members.append({"name": name, "age": age})
+
+    results["PM-JAY 70+"] = check_pmjay_senior(any(m["age"] >= 70 for m in members))
+    results["PM Surya Ghar"] = await check_surya_ghar()
+    results["PMAY-U 2.0"] = await check_pmay_u20(income)
+    results["PMJJBY"] = any(18 <= m["age"] <= 50 for m in members)
+    results["PMSBY"] = any(18 <= m["age"] <= 70 for m in members)
+
+    print("\\n========================================")
+    print(" GOVERNMENT SCHEME SCREENING SUMMARY")
+    print("========================================")
+    for scheme, res in results.items():
+        print(f"{'✓' if res else '—'} {scheme}: {'Potentially relevant' if res else 'Does not appear applicable'}")
+
+    return results
+
+# MODULE 6 - FINANCIAL HEALTH SCORE
+def financial_health_score(income, result):
+    surplus = result['surplus']
+    expense_pct = result['expense_pct']
+    discretionary_pct = result['discretionary_pct']
+    potential_saving = result['potential_monthly_saving']
+
+    surplus_pct = (surplus / income) * 100 if income else 0
+    if surplus <= 0: surplus_score = 0
+    elif surplus_pct >= 30: surplus_score = 25
+    elif surplus_pct >= 20: surplus_score = 20
+    elif surplus_pct >= 10: surplus_score = 15
+    elif surplus_pct >= 5: surplus_score = 10
+    else: surplus_score = 5
+
+    savings_rate = surplus_pct
+    if savings_rate <= 0: savings_score = 0
+    elif savings_rate >= 30: savings_score = 25
+    elif savings_rate >= 20: savings_score = 20
+    elif savings_rate >= 10: savings_score = 15
+    elif savings_rate >= 5: savings_score = 10
+    else: savings_score = 5
+
+    if expense_pct <= 60: expense_score = 20
+    elif expense_pct <= 70: expense_score = 17
+    elif expense_pct <= 80: expense_score = 14
+    elif expense_pct <= 90: expense_score = 8
+    elif expense_pct <= 100: expense_score = 4
+    else: expense_score = 0
+
+    if discretionary_pct <= 10: discretionary_score = 15
+    elif discretionary_pct <= 15: discretionary_score = 12
+    elif discretionary_pct <= 20: discretionary_score = 9
+    elif discretionary_pct <= 30: discretionary_score = 5
+    else: discretionary_score = 2
+
+    potential_rate = (potential_saving / income) * 100 if income else 0
+    if potential_rate >= 10: opportunity_score = 15
+    elif potential_rate >= 7: opportunity_score = 12
+    elif potential_rate >= 5: opportunity_score = 9
+    elif potential_rate >= 2: opportunity_score = 5
+    else: opportunity_score = 2
+
+    total_score = surplus_score + savings_score + expense_score + discretionary_score + opportunity_score
+
+    if total_score >= 80: category = "Strong"
+    elif total_score >= 60: category = "Stable"
+    elif total_score >= 40: category = "Needs improvement"
+    else: category = "Needs attention"
+
+    print("\\n========================================")
+    print(" FINANCIAL HEALTH SCORE")
+    print("========================================")
+    print(f"\\nOverall Score: {total_score}/100")
+    print(f"Financial Position: {category}")
+    return {'score': total_score, 'category': category}
+
+# MODULE 7 - VISUAL DASHBOARD
+def dashboard(income, expenses, result, scenarios, score_result):
+    plt.close('all')
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig.suptitle('Family Financial Health Dashboard', fontsize=14, fontweight='bold')
+
+    # CHART 1: Pie Chart with Legend
+    labels = []
+    values = []
+    for k, v in expenses.items():
+        if v > 0:
+            labels.append(k)
+            values.append(v)
+
+    if values:
+        total = sum(values)
+        def autopct_filter(pct):
+            return f"{pct:.0f}%" if pct >= 5 else ""
+
+        pie_result = axes[0].pie(
+            values,
+            labels=None,
+            autopct=autopct_filter,
+            pctdistance=0.75,
+            startangle=90
+        )
+        wedges = pie_result[0]
+
+        legend_labels = [f"{lbl} ({v/total*100:.1f}%)" for lbl, v in zip(labels, values)]
+        axes[0].legend(
+            wedges,
+            legend_labels,
+            title="Expenses",
+            loc="center left",
+            bbox_to_anchor=(-0.45, 0.5),
+            fontsize=7,
+            title_fontsize=8
+        )
+    axes[0].set_title('Expense Breakdown', pad=10)
+
+    # CHART 2: Income vs Expenses
+    categories = ['Income', 'Expenses', 'Surplus']
+    amounts = [income, result['total_exp'], max(result['surplus'], 0)]
+    axes[1].bar(categories, amounts, color=['#3b82f6', '#ef4444', '#10b981'])
+    axes[1].set_title('Monthly Financial Position')
+    axes[1].set_ylabel('Amount (₹)')
+
+    # CHART 3: 5-Year Compounding
+    r = 0.07 / 12
+    months = list(range(61))
+    for label, monthly in scenarios:
+        curve = [monthly * ((1 + r) ** m - 1) / r if r > 0 else monthly * m for m in months]
+        axes[2].plot(months, curve, label=label, marker='o', markevery=12)
+        final_value = curve[-1]
+        axes[2].annotate(f'₹{final_value:,.0f}', xy=(60, final_value), xytext=(-5, 8), textcoords='offset points', fontsize=7)
+
+    axes[2].set_xlabel('Months')
+    axes[2].set_ylabel('Projected Value (₹)')
+    axes[2].set_title('5-Year Compounding')
+    axes[2].legend(fontsize=7)
+
+    fig.text(0.5, 0.02, f"Financial Health Score: {score_result['score']}/100 — {score_result['category']}", ha='center', fontsize=11, fontweight='bold')
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=130, bbox_inches='tight')
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode('utf-8')
+    js.renderPlotImage(img_str)
+    print("\\n✓ Dashboard visualization generated below.")
+
+# RUNNER
+async def run():
+    income, expenses, current_savings = await collect_data()
+    result = analyse(income, expenses)
+    show_analysis(result)
+    scenarios = project_savings(current_savings, result)
+    await run_government_scheme_screening(income)
+    score_result = financial_health_score(income, result)
+    dashboard(income, expenses, result, scenarios, score_result)
+    print("\\n========================================")
+    print("       FAMILY LEDGER COMPLETE")
+    print("========================================")
+
+import asyncio
+asyncio.ensure_future(run())
+`;
+
+    async function init() {
+      try {
+        pyodideInstance = await loadPyodide({
+          stdout: (text) => appendOutput(text + "\n"),
+          stderr: (text) => appendOutput(text + "\n")
+        });
+        await pyodideInstance.loadPackage(["matplotlib", "numpy"]);
+        outputEl.innerHTML = "";
+        await pyodideInstance.runPythonAsync(pythonCode);
+      } catch (err) {
+        appendOutput("\n[Error initializing runtime]: " + err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
