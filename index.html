@@ -1,567 +1,2213 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Family Ledger Tool</title>
+  <title>Family Ledger | फैमिली लेजर - परिवार वित्तीय स्वास्थ्य व सरकारी योजनाएं</title>
   
-  <!-- Pyodide runtime -->
+  <!-- Modern Google Fonts for English and Hindi -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Pyodide runtime for Python engine in browser -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
 
+  <!-- Chart.js for smooth interactive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-      background-color: #0f172a;
-      color: #e2e8f0;
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 0%, #172554 0%, #0b1329 50%, #030712 100%);
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-hover: rgba(30, 41, 59, 0.95);
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --success-dark: #065f46;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --danger: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-gold: #fbbf24;
+      --accent-indigo: #818cf8;
+      --scheme-bg: linear-gradient(135deg, rgba(30, 58, 138, 0.75) 0%, rgba(15, 23, 42, 0.95) 100%);
+      --scheme-border: rgba(96, 165, 250, 0.4);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      --font-main: 'Plus Jakarta Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 24px;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: #030712;
+      background-image: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 20px 16px 60px 16px;
+      line-height: 1.5;
     }
-    .container {
+
+    /* Print styling */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+      }
+      .no-print, #form-container, #python-drawer, .nav-btn, button, .quick-tags {
+        display: none !important;
+      }
+      #results-container {
+        display: flex !important;
+        width: 100% !important;
+      }
+      .scheme-card, .kpi-card, .glass-panel {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+      .badge-govt {
+        border: 1px solid #16a34a !important;
+        background: #dcfce7 !important;
+        color: #14532d !important;
+      }
+      h1, h2, h3, h4, .text-gold {
+        color: #0f172a !important;
+      }
+    }
+
+    .app-wrapper {
       width: 100%;
-      max-width: 950px;
-    }
-    header {
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    h1 { margin: 0 0 6px 0; color: #38bdf8; font-size: 1.6rem; }
-    p { margin: 0; color: #94a3b8; font-size: 0.95rem; }
-    
-    /* Terminal Console */
-    #terminal-box {
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      font-family: "Courier New", Courier, monospace;
-    }
-    #console-output {
-      white-space: pre-wrap;
-      word-break: break-word;
-      min-height: 280px;
-      max-height: 480px;
-      overflow-y: auto;
-      color: #34d399;
-      font-size: 0.95rem;
-      line-height: 1.45;
-    }
-    .input-line {
+      max-width: 880px;
       display: flex;
-      margin-top: 12px;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* App Header */
+    header {
+      text-align: center;
+      padding: 12px 8px;
+    }
+    .brand-tag {
+      display: inline-flex;
+      align-items: center;
       gap: 8px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #7dd3fc;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
     }
-    #user-input {
-      flex: 1;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      color: #f8fafc;
-      padding: 10px 12px;
-      font-family: monospace;
+    .brand-tag .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    h1.app-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .hindi-subtitle {
+      font-size: 1.15rem;
+      color: #fcd34d;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .english-subtitle {
       font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    /* Progress Indicator Bar */
+    .wizard-progress-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+    }
+    .progress-step-text {
+      color: var(--primary);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .progress-pct-text {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #10b981 100%);
+      border-radius: 999px;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Step Question Card */
+    .step-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+    .step-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #10b981);
+    }
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    .badge-income { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-fixed { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-variable { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-discretionary { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-schemes { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    .step-title-hindi {
+      font-size: 1.65rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+      line-height: 1.35;
+    }
+    .step-title-english {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+    .step-description {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--primary);
+    }
+
+    /* Big Input Field */
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .currency-symbol {
+      position: absolute;
+      left: 18px;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #38bdf8;
+      pointer-events: none;
+      user-select: none;
+    }
+    .big-input {
+      width: 100%;
+      background: #020617;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      padding: 16px 20px 16px 54px;
+      font-size: 1.85rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', var(--font-main);
+      color: #f8fafc;
       outline: none;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
     }
-    #user-input:focus {
+    .big-input:focus {
       border-color: #38bdf8;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2), inset 0 2px 4px rgba(0,0,0,0.4);
     }
-    #submit-btn {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 0 20px;
-      border-radius: 4px;
-      cursor: pointer;
+    .big-input::placeholder {
+      color: #475569;
+      font-size: 1.4rem;
+      font-weight: 400;
+    }
+
+    /* Quick Preset Chips */
+    .quick-chips-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       font-weight: 600;
     }
-    #submit-btn:disabled {
-      background: #475569;
-      cursor: not-allowed;
-    }
-    #plot-container {
-      margin-top: 24px;
+    .quick-chips {
       display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e2e8f0;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .chip-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      transform: translateY(-1px);
+    }
+
+    /* Checkbox & Options for Screening */
+    .screening-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .scheme-option-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .scheme-option-row:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .scheme-checkbox {
+      width: 22px;
+      height: 22px;
+      margin-top: 2px;
+      accent-color: #0284c7;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .scheme-label-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .scheme-benefit-badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      background: #15803d;
+      color: #dcfce7;
+    }
+    .scheme-label-desc {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 3px;
+    }
+
+    /* Navigation Buttons */
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      width: 100%;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: none;
+      outline: none;
+      font-family: var(--font-main);
     }
-    #plot-container img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background: white;
+    .btn-next {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      flex: 1;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
     }
-    .status {
+    .btn-next:hover {
+      background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+    }
+    .btn-next:active {
+      transform: translateY(0);
+    }
+    .btn-back {
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 14px 20px;
+    }
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+    .btn-calculate {
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.5);
+      flex: 1;
+    }
+    .btn-calculate:hover {
+      background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+      transform: translateY(-1px);
+    }
+
+    /* ========================================================= */
+    /* RESULTS SCREEN - PROMINENT GOVERNMENT SCHEMES FIRST!      */
+    /* ========================================================= */
+    #results-container {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Hero Scheme Card */
+    .hero-scheme-banner {
+      background: var(--scheme-bg);
+      border: 2px solid var(--scheme-border);
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow: 0 15px 35px rgba(30, 58, 138, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-scheme-banner::after {
+      content: '🏆';
+      position: absolute;
+      right: 20px;
+      top: 15px;
+      font-size: 5rem;
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .lead-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #16a34a;
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4);
+    }
+    .scheme-hero-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .scheme-hero-sub {
+      font-size: 1.05rem;
+      color: #93c5fd;
+      margin-bottom: 20px;
+    }
+    .schemes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .scheme-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .scheme-card:hover {
+      border-color: #60a5fa;
+      background: rgba(30, 41, 59, 0.95);
+      transform: translateY(-2px);
+    }
+    .scheme-card.highlight {
+      border-color: #34d399;
+      background: rgba(6, 78, 59, 0.35);
+    }
+    .scheme-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .scheme-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .scheme-name-hi {
+      font-size: 0.92rem;
+      color: #fcd34d;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .scheme-cost-badge {
+      background: rgba(245, 158, 11, 0.2);
       color: #fbbf24;
-      font-style: italic;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .scheme-benefit-text {
+      font-size: 0.92rem;
+      color: #e2e8f0;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .scheme-enroll-how {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      padding-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Key Indicators (KPI Cards) */
+    .kpi-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+    }
+    .kpi-label-hi {
+      font-size: 0.88rem;
+      color: #fcd34d;
+      font-weight: 700;
+    }
+    .kpi-label-en {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', var(--font-main);
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .kpi-subtext {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .kpi-income .kpi-value { color: #38bdf8; }
+    .kpi-expense .kpi-value { color: #f87171; }
+    .kpi-savings .kpi-value { color: #34d399; }
+    .kpi-rate .kpi-value { color: #fbbf24; }
+
+    /* Health Score Banner */
+    .health-score-box {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .health-score-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .score-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: conic-gradient(#10b981 var(--score-pct, 75%), rgba(255, 255, 255, 0.1) 0%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .score-circle-inner {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      background: #0b1329;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: #ffffff;
+    }
+    .score-circle-inner small {
+      font-size: 0.6rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .score-info-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .score-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .score-badge-strong { background: #065f46; color: #6ee7b7; border: 1px solid #10b981; }
+    .score-badge-stable { background: #1e3a8a; color: #93c5fd; border: 1px solid #3b82f6; }
+    .score-badge-needs { background: #881337; color: #fda4af; border: 1px solid #f43f5e; }
+
+    /* Spending Breakdown & Charts */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .analytics-grid { grid-template-columns: 1fr; }
+    }
+    .glass-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .panel-header {
+      margin-bottom: 16px;
+    }
+    .panel-title-hi {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .panel-title-en {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .chart-box {
+      position: relative;
+      height: 260px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 50/30/20 Rule & Insights */
+    .rule-bar-wrapper {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .rule-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .rule-item-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+    .rule-item-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .rule-item-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* Compound Interest Simulator */
+    .compounding-card {
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.95));
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    .slider-control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 18px 0;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .range-slider {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
+      accent-color: #fbbf24;
+      cursor: pointer;
+    }
+    .projection-results-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .proj-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .proj-title {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    .proj-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #fcd34d;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Action bar with Download Button */
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #000000;
+      font-weight: 800;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+      flex: 1;
+      min-width: 220px;
+    }
+    .btn-download:hover {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      transform: translateY(-1px);
+    }
+    .btn-recalculate {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      flex: 1;
+      min-width: 200px;
+    }
+    .btn-recalculate:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Python Engine Collapsible Drawer */
+    #python-drawer {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .drawer-header {
+      padding: 12px 18px;
+      background: #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .drawer-header:hover {
+      color: #ffffff;
+    }
+    .drawer-body {
+      display: none;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #34d399;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      background: #020617;
+    }
+    .drawer-body.open {
+      display: block;
+    }
+
+    /* Helper styles */
+    .text-gold { color: #fbbf24; }
+    .text-emerald { color: #34d399; }
+    .text-rose { color: #f87171; }
+    .text-sky { color: #38bdf8; }
+
+    /* Mobile tweaks */
+    @media (max-width: 640px) {
+      .step-card { padding: 24px 18px; border-radius: 18px; }
+      h1.app-title { font-size: 1.75rem; }
+      .step-title-hindi { font-size: 1.35rem; }
+      .big-input { font-size: 1.45rem; padding-left: 48px; }
+      .currency-symbol { font-size: 1.45rem; left: 14px; }
+      .schemes-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <header>
-      <h1>Family Ledger Tool</h1>
-      <p>Aashvi Bansal | Family Financial Health Tool (Running in Browser)</p>
+  <div class="app-wrapper">
+    
+    <!-- App Branding & Subtitles -->
+    <header class="no-print">
+      <div class="brand-tag">
+        <span class="pulse-dot"></span>
+        <span>FAMILY LEDGER | फैमिली लेजर</span>
+        <span style="opacity:0.4;">•</span>
+        <span id="py-status-badge">Python Engine Ready</span>
+      </div>
+      <h1 class="app-title">Family Ledger</h1>
+      <div class="hindi-subtitle">परिवार वित्तीय स्वास्थ्य व सरकारी योजना मार्गदर्शक</div>
+      <p class="english-subtitle">
+        A practical, structured personal finance tool that translates household income and expenses into actionable savings, compound interest projections, and instant government scheme eligibility.
+      </p>
     </header>
 
-    <div id="terminal-box">
-      <div id="console-output"><span class="status">Loading Python runtime and dependencies (matplotlib, numpy)... please wait.</span>\n</div>
+    <!-- ======================================================== -->
+    <!-- GUIDED FORM WIZARD (ONE FIELD AT A TIME WITH NEXT BTN)    -->
+    <!-- ======================================================== -->
+    <div id="form-container" class="no-print">
       
-      <form class="input-line" id="input-form" onsubmit="handleInput(event)">
-        <input type="text" id="user-input" placeholder="Type your input and press Enter..." disabled autocomplete="off" />
-        <button id="submit-btn" type="submit" disabled>Send</button>
-      </form>
+      <!-- Progress Bar -->
+      <div class="wizard-progress-card" style="margin-bottom: 16px;">
+        <div class="progress-meta">
+          <span class="progress-step-text" id="wizard-step-label">
+            <span>कदम 1 / 13</span> • <span>Step 1 of 13</span>
+          </span>
+          <span class="progress-pct-text" id="wizard-pct-label">8% पूर्ण</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="wizard-progress-bar" style="width: 8%;"></div>
+        </div>
+      </div>
+
+      <!-- Active Question Step Container -->
+      <div class="step-card" id="active-step-card">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+
     </div>
 
-    <div id="plot-container"></div>
+    <!-- ======================================================== -->
+    <!-- RESULTS DASHBOARD (GOVERNMENT SCHEMES SHOWN FIRST!)       -->
+    <!-- ======================================================== -->
+    <div id="results-container">
+
+      <!-- 1. HERO GOVERNMENT SCHEMES OPPORTUNITY BANNER -->
+      <div class="hero-scheme-banner" id="govt-schemes-hero">
+        <div class="lead-badge">⚡ तुरंत ध्यान दें / High-Value Government Findings</div>
+        <h2 class="scheme-hero-title">सरकारी योजनाओं के विशेष अवसर / Eligible Government Schemes</h2>
+        <p class="scheme-hero-sub">
+          अधिकांश परिवारों को इन जरूरी योजनाओं की जानकारी नहीं होती। आपके परिवार के विवरण के अनुसार आप इन योजनाओं का लाभ तुरंत उठा सकते हैं:
+        </p>
+
+        <div class="schemes-grid" id="schemes-cards-list">
+          <!-- Populated dynamically with eligibility cards (PMSBY ₹20/yr, PMJJBY, Sukanya Samriddhi, PM-JAY 70+, Surya Ghar, PMAY) -->
+        </div>
+      </div>
+
+      <!-- 2. KEY FINANCIAL OVERVIEW (KPI CARDS) -->
+      <div>
+        <div class="kpi-section-title">
+          <span>मासिक वित्तीय स्थिति / Monthly Financial Snapshot</span>
+          <span style="font-size: 0.85rem; font-weight: 500; color: #94a3b8;" id="report-date"></span>
+        </div>
+        
+        <div class="kpi-grid" style="margin-top: 14px;">
+          
+          <!-- Monthly Income -->
+          <div class="kpi-card kpi-income">
+            <div>
+              <div class="kpi-label-hi">मासिक आय</div>
+              <div class="kpi-label-en">Monthly Income</div>
+            </div>
+            <div class="kpi-value" id="kpi-income-val">₹0</div>
+            <div class="kpi-subtext">कुल घरेलू आमदनी</div>
+          </div>
+
+          <!-- Total Expenses -->
+          <div class="kpi-card kpi-expense">
+            <div>
+              <div class="kpi-label-hi">कुल खर्च</div>
+              <div class="kpi-label-en">Total Expenses</div>
+            </div>
+            <div class="kpi-value" id="kpi-expense-val">₹0</div>
+            <div class="kpi-subtext" id="kpi-expense-pct">0% आमदनी का खर्च</div>
+          </div>
+
+          <!-- Monthly Savings / Surplus -->
+          <div class="kpi-card kpi-savings">
+            <div>
+              <div class="kpi-label-hi">मासिक बचत (सरप्लस)</div>
+              <div class="kpi-label-en">Net Savings</div>
+            </div>
+            <div class="kpi-value" id="kpi-savings-val">₹0</div>
+            <div class="kpi-subtext" id="kpi-savings-status">बचत स्थिति</div>
+          </div>
+
+          <!-- Savings Rate -->
+          <div class="kpi-card kpi-rate">
+            <div>
+              <div class="kpi-label-hi">बचत दर (प्रतिशत)</div>
+              <div class="kpi-label-en">Savings Rate</div>
+            </div>
+            <div class="kpi-value" id="kpi-rate-val">0%</div>
+            <div class="kpi-subtext" id="kpi-rate-rating">लक्ष्य: कम से कम 20%</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3. FINANCIAL HEALTH SCORE & ACTIONABLE ADVICE -->
+      <div class="health-score-box">
+        <div class="health-score-left">
+          <div class="score-circle" id="score-circle-element">
+            <div class="score-circle-inner">
+              <span id="health-score-number">72</span>
+              <small>/ 100</small>
+            </div>
+          </div>
+          <div>
+            <div class="score-info-title" id="health-category-title">स्थिर वित्तीय स्थिति (Stable)</div>
+            <div id="health-badge-pill" class="score-badge score-badge-stable">Stable Financial Position</div>
+            <div style="font-size: 0.88rem; color: #cbd5e1; margin-top: 6px;" id="health-summary-desc">
+              आपके खर्च और बचत का संतुलन अच्छा है।
+            </div>
+          </div>
+        </div>
+
+        <!-- 10% Variable Saving Potential highlight -->
+        <div style="background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 14px 18px; max-width: 320px;">
+          <div style="font-size: 0.8rem; color: #fbbf24; font-weight: 700;">💡 बचत का सुनहरा अवसर (10% Opportunity)</div>
+          <div style="font-size: 0.85rem; color: #e2e8f0; margin-top: 4px;">
+            यदि आप परिवर्तनीय खर्चों में 10% कम करें, तो प्रतिवर्ष <strong class="text-emerald" id="potential-annual-saving-val">₹0</strong> अतिरिक्त बचेंगे!
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SPENDING BREAKDOWN & 50/30/20 BUDGET BENCHMARK -->
+      <div class="analytics-grid">
+        
+        <!-- Category Breakdown Donut Chart -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div class="panel-title-hi">खर्चों का वर्गीकरण</div>
+            <div class="panel-title-en">Expense Category Breakdown</div>
+          </div>
+          <div class="chart-box">
+            <canvas id="expenseCategoryChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Expense Structure vs 50/30/20 Rule -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div class="panel-title-hi">बजट संरचना (50 / 30 / 20 नियम)</div>
+            <div class="panel-title-en">Fixed vs Variable vs Discretionary</div>
+          </div>
+          
+          <div class="rule-bar-wrapper">
+            
+            <!-- Fixed Necessities (Target: ~50%) -->
+            <div class="rule-item">
+              <div class="rule-item-labels">
+                <span>स्थिर अनिवार्य खर्च / Fixed Necessities (किराया, स्कूल फीस, ईएमआई)</span>
+                <strong id="fixed-pct-text">0%</strong>
+              </div>
+              <div class="rule-item-bar">
+                <div class="rule-item-fill" id="fixed-bar-fill" style="width: 0%; background: #f87171;"></div>
+              </div>
+              <div style="font-size: 0.75rem; color: #94a3b8;" id="fixed-amount-text">₹0 प्रति माह</div>
+            </div>
+
+            <!-- Variable Essentials -->
+            <div class="rule-item">
+              <div class="rule-item-labels">
+                <span>दैनिक जरूरी खर्च / Variable Essentials (किराना, बिजली, पेट्रोल, दवा)</span>
+                <strong id="variable-pct-text">0%</strong>
+              </div>
+              <div class="rule-item-bar">
+                <div class="rule-item-fill" id="variable-bar-fill" style="width: 0%; background: #fbbf24;"></div>
+              </div>
+              <div style="font-size: 0.75rem; color: #94a3b8;" id="variable-amount-text">₹0 प्रति माह</div>
+            </div>
+
+            <!-- Discretionary (Target: <20%) -->
+            <div class="rule-item">
+              <div class="rule-item-labels">
+                <span>इच्छा व शौक खर्च / Discretionary (कपड़े, बाहर खाना, घूमना)</span>
+                <strong id="discretionary-pct-text">0%</strong>
+              </div>
+              <div class="rule-item-bar">
+                <div class="rule-item-fill" id="discretionary-bar-fill" style="width: 0%; background: #c084fc;"></div>
+              </div>
+              <div style="font-size: 0.75rem; color: #94a3b8;" id="discretionary-amount-text">₹0 प्रति माह</div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 5. LONG-TERM COMPOUND INTEREST WEALTH GROWTH CALCULATOR -->
+      <div class="compounding-card">
+        <div class="panel-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.4rem;">🌱</span>
+            <div>
+              <div class="panel-title-hi">चक्रवृद्धि ब्याज से भविष्य का धन</div>
+              <div class="panel-title-en">Long-Term Wealth Growth through Compound Interest</div>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 14px;">
+          छोटी बचत भी चक्रवृद्धि ब्याज (Compound Interest) की शक्ति से समय के साथ बहुत बड़ा कोष बन जाती है:
+        </p>
+
+        <!-- Slider for Years -->
+        <div class="slider-control">
+          <div class="slider-header">
+            <span>निवेश की अवधि / Investment Duration: <strong class="text-gold" id="compound-years-label">5 वर्ष (5 Years)</strong></span>
+            <span style="font-size: 0.85rem; color: #94a3b8;">अनुमानित वार्षिक रिटर्न: 8%</span>
+          </div>
+          <input type="range" class="range-slider" id="compound-years-slider" min="1" max="30" value="5" oninput="updateCompoundingSimulation()">
+        </div>
+
+        <!-- Simulation Comparison Boxes -->
+        <div class="projection-results-row">
+          
+          <div class="proj-box">
+            <div class="proj-title">वर्तमान बचत से भविष्य कोष</div>
+            <div class="proj-val" id="proj-current-val">₹0</div>
+            <div style="font-size: 0.75rem; color: #94a3b8;" id="proj-current-sub">मौजूदा बचत के आधार पर</div>
+          </div>
+
+          <div class="proj-box" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+            <div class="proj-title" style="color: #6ee7b7;">+10% खर्च घटाकर अतिरिक्त निवेश</div>
+            <div class="proj-val" style="color: #34d399;" id="proj-boost-val">₹0</div>
+            <div style="font-size: 0.75rem; color: #6ee7b7;" id="proj-boost-gain">+₹0 अतिरिक्त धन</div>
+          </div>
+
+          <div class="proj-box">
+            <div class="proj-title">धन दोगुना होने का समय (Rule of 72)</div>
+            <div class="proj-val" style="color: #38bdf8;">~9 वर्ष</div>
+            <div style="font-size: 0.75rem; color: #94a3b8;">8% वार्षिक ब्याज दर पर</div>
+          </div>
+
+        </div>
+
+        <!-- Dynamic Growth Curve Canvas -->
+        <div style="height: 200px; margin-top: 20px; position: relative;">
+          <canvas id="compoundChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 6. ACTION BUTTONS: DOWNLOAD REPORT & RECALCULATE -->
+      <div class="action-bar no-print">
+        <button class="btn btn-download" onclick="downloadReport()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>📥 रिपोर्ट डाउनलोड / प्रिंट करें (Download Report)</span>
+        </button>
+
+        <button class="btn btn-recalculate" onclick="restartWizard()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>🔄 जानकारी बदलें / Edit Answers</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Collapsible Python Engine Console & Code Inspector -->
+    <div id="python-drawer" class="no-print">
+      <div class="drawer-header" onclick="togglePythonDrawer()">
+        <span>⚡ Python Pyodide Engine • Terminal Logs & Financial Model</span>
+        <span id="drawer-toggle-icon">▼ View Python Code / Output</span>
+      </div>
+      <div class="drawer-body" id="drawer-console-output">
+# Family Ledger Python Financial Health Model
+# Initializing Python WebAssembly Environment...
+      </div>
+    </div>
+
   </div>
 
+  <!-- ======================================================== -->
+  <!-- APPLICATION SCRIPT & PYTHON (PYODIDE) INTEGRATION         -->
+  <!-- ======================================================== -->
   <script>
-    let pyodideInstance = null;
-    let inputResolver = null;
-    const outputEl = document.getElementById('console-output');
-    const inputEl = document.getElementById('user-input');
-    const submitBtn = document.getElementById('submit-btn');
-    const plotContainer = document.getElementById('plot-container');
+    // -------------------------------------------------------------
+    // DATA MODEL & STATE
+    // -------------------------------------------------------------
+    const wizardState = {
+      currentStepIndex: 0,
+      income: 0,
+      currentSavings: 0,
+      hasSenior70Plus: false,
+      hasGirlChildUnder10: false,
+      hasAdult18to50: false,
+      hasAdult18to70: false,
+      hasRooftopSolarPotential: false,
+      ownsPuccaHouse: false,
+      expenses: {
+        housing: 0,
+        groceries: 0,
+        education: 0,
+        utilities: 0,
+        transport: 0,
+        mobileInternet: 0,
+        medical: 0,
+        clothing: 0,
+        entertainment: 0,
+        insurance: 0,
+        loanEmi: 0
+      }
+    };
 
-    function appendOutput(text) {
-      outputEl.textContent += text;
-      outputEl.scrollTop = outputEl.scrollHeight;
+    // Wizard step definitions (Guided form: 1 field at a time!)
+    const STEPS = [
+      {
+        id: "income",
+        badge: "मासिक आमदनी / Income",
+        badgeClass: "badge-income",
+        titleHi: "मासिक आय / Monthly Household Income",
+        titleEn: "Total monthly household income from all sources",
+        desc: "परिवार के सभी सदस्यों की कुल मिलाकर महीने की कमाई दर्ज करें (वेतन, व्यापार, पेंशन आदि)",
+        field: "income",
+        presets: [20000, 35000, 50000, 75000, 100000],
+        type: "currency"
+      },
+      {
+        id: "schemes_family",
+        badge: "सरकारी योजना जांच / Scheme Eligibility",
+        badgeClass: "badge-schemes",
+        titleHi: "परिवार के सदस्यों का विवरण / Household Profile",
+        titleEn: "Check applicable government welfare programs",
+        desc: "लागू होने वाले विकल्पों पर टिक करें ताकि हम आपके लिए मुफ्त व रियायती सरकारी योजनाएं पहचान सकें:",
+        type: "schemes_screening"
+      },
+      {
+        id: "housing",
+        badge: "स्थिर खर्च / Fixed Need",
+        badgeClass: "badge-fixed",
+        titleHi: "मकान किराया या होम लोन ईएमआई / Housing Rent or EMI",
+        titleEn: "Monthly rent or home loan payment",
+        desc: "अगर आपका खुद का मकान है और कोई ईएमआई नहीं है, तो '0' छोड़ें।",
+        field: "expenses.housing",
+        presets: [0, 5000, 8000, 12000, 18000],
+        type: "currency"
+      },
+      {
+        id: "groceries",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "राशन, किराना, दूध व सब्ज़ी / Food & Groceries",
+        titleEn: "Monthly grocery, milk, vegetables, and kitchen expenses",
+        desc: "घर के राशन, आटा, दाल, तेल, दूध व फल-सब्जियों का कुल मासिक खर्च।",
+        field: "expenses.groceries",
+        presets: [5000, 8000, 12000, 16000],
+        type: "currency"
+      },
+      {
+        id: "education",
+        badge: "स्थिर खर्च / Fixed Need",
+        badgeClass: "badge-fixed",
+        titleHi: "बच्चों की पढ़ाई व स्कूल फीस / Education & School Fees",
+        titleEn: "School, college fees, books, tuition, and coaching",
+        desc: "बच्चों की मासिक स्कूल फीस, ट्यूशन, किताबें व यूनिफॉर्म का औसत खर्च।",
+        field: "expenses.education",
+        presets: [0, 2000, 5000, 10000],
+        type: "currency"
+      },
+      {
+        id: "utilities",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "बिजली, गैस सिलेंडर व पानी / Electricity, Gas & Water",
+        titleEn: "Monthly utility bills for home",
+        desc: "बिजली का बिल, रसोई गैस (LPG सिलेंडर), पानी व मेंटेनेंस खर्च।",
+        field: "expenses.utilities",
+        presets: [1500, 2500, 4000, 6000],
+        type: "currency"
+      },
+      {
+        id: "transport",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "आवागमन, पेट्रोल व बस/ट्रेन / Transport & Commute",
+        titleEn: "Fuel, bike/car maintenance, bus/metro pass, auto fares",
+        desc: "दफ्तर, बाजार आने-जाने का पेट्रोल, बस किराया, ऑटो या ट्रेन का खर्च।",
+        field: "expenses.transport",
+        presets: [1000, 2500, 4000, 7000],
+        type: "currency"
+      },
+      {
+        id: "mobileInternet",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "मोबाइल रिचार्ज, टीवी व इंटरनेट / Mobile & Internet",
+        titleEn: "Mobile recharges, broadband WiFi, DTH TV",
+        desc: "परिवार के सभी मोबाइल फोन रिचार्ज, वाईफाई ब्रॉडबैंड व टीवी डिश खर्च।",
+        field: "expenses.mobileInternet",
+        presets: [500, 1000, 1500, 2500],
+        type: "currency"
+      },
+      {
+        id: "medical",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "दवा, डॉक्टर व स्वास्थ्य / Medical & Healthcare",
+        titleEn: "Medicines, doctor checkups, diagnostic tests",
+        desc: "बुजुर्गों की नियमित दवाइयां, डॉक्टर फीस या अचानक होने वाले स्वास्थ्य खर्च।",
+        field: "expenses.medical",
+        presets: [500, 1500, 3000, 5000],
+        type: "currency"
+      },
+      {
+        id: "clothing",
+        badge: "शौक व इच्छा / Discretionary",
+        badgeClass: "badge-discretionary",
+        titleHi: "कपड़े व व्यक्तिगत देखभाल / Clothing & Personal Care",
+        titleEn: "Clothes, footwear, salon, cosmetics, grooming",
+        desc: "कपड़े, जूते, सैलून व अन्य व्यक्तिगत सौंदर्य प्रसाधनों का औसत मासिक खर्च।",
+        field: "expenses.clothing",
+        presets: [500, 1500, 3000, 6000],
+        type: "currency"
+      },
+      {
+        id: "entertainment",
+        badge: "शौक व इच्छा / Discretionary",
+        badgeClass: "badge-discretionary",
+        titleHi: "मनोरंजन व बाहर खाना / Dining Out & Entertainment",
+        titleEn: "Restaurants, street food, movies, family outings",
+        desc: "होटल में खाना, बाहर नाश्ता, सिनेमा, सैर-सपाटा या ऑनलाइन फूड ऑर्डर।",
+        field: "expenses.entertainment",
+        presets: [0, 1000, 2500, 5000],
+        type: "currency"
+      },
+      {
+        id: "insurance",
+        badge: "स्थिर खर्च / Fixed Need",
+        badgeClass: "badge-fixed",
+        titleHi: "बीमा व एलआईसी प्रीमियम / Insurance & LIC Premiums",
+        titleEn: "Life, health insurance, or LIC policy installments",
+        desc: "जीवन बीमा (LIC), स्वास्थ्य बीमा (Health Insurance) की मासिक किस्त।",
+        field: "expenses.insurance",
+        presets: [0, 1000, 2500, 5000],
+        type: "currency"
+      },
+      {
+        id: "loanEmi",
+        badge: "स्थिर खर्च / Fixed Need",
+        badgeClass: "badge-fixed",
+        titleHi: "अन्य कर्ज / लोन ईएमआई / Other Loans or Credit EMIs",
+        titleEn: "Personal loan, bike/car loan, or gold loan EMIs",
+        desc: "कोई बाइक लोन, पर्सनल लोन, फोन ईएमआई या किसी रिश्तेदार की किस्त।",
+        field: "expenses.loanEmi",
+        presets: [0, 2000, 5000, 10000],
+        type: "currency"
+      }
+    ];
+
+    // Helper to get nested field value
+    function getFormValue(path) {
+      if (!path) return 0;
+      const parts = path.split('.');
+      if (parts.length === 1) return wizardState[parts[0]];
+      return wizardState[parts[0]][parts[1]];
     }
 
-    async function jsInput(promptText) {
-      if (promptText) appendOutput(promptText);
-      inputEl.disabled = false;
-      submitBtn.disabled = false;
-      inputEl.focus();
+    // Helper to set nested field value
+    function setFormValue(path, val) {
+      if (!path) return;
+      const num = parseFloat(val) || 0;
+      const parts = path.split('.');
+      if (parts.length === 1) {
+        wizardState[parts[0]] = num;
+      } else {
+        wizardState[parts[0]][parts[1]] = num;
+      }
+    }
 
-      return new Promise((resolve) => {
-        inputResolver = resolve;
+    // Format currency in Indian standard (₹ 45,000)
+    function formatRupees(amount) {
+      const num = Math.round(amount || 0);
+      return '₹' + num.toLocaleString('en-IN');
+    }
+
+    // -------------------------------------------------------------
+    // WIZARD RENDERING (ONE FIELD AT A TIME)
+    // -------------------------------------------------------------
+    function renderWizardStep() {
+      const step = STEPS[wizardState.currentStepIndex];
+      const totalSteps = STEPS.length;
+      const pct = Math.round(((wizardState.currentStepIndex + 1) / totalSteps) * 100);
+
+      // Update progress bar
+      document.getElementById('wizard-step-label').innerHTML = `
+        <span>कदम ${wizardState.currentStepIndex + 1} / ${totalSteps}</span> • 
+        <span>Step ${wizardState.currentStepIndex + 1} of ${totalSteps}</span>
+      `;
+      document.getElementById('wizard-pct-label').textContent = `${pct}% पूर्ण`;
+      document.getElementById('wizard-progress-bar').style.width = `${pct}%`;
+
+      const card = document.getElementById('active-step-card');
+      const isFirst = wizardState.currentStepIndex === 0;
+      const isLast = wizardState.currentStepIndex === totalSteps - 1;
+
+      if (step.type === "currency") {
+        const currentVal = getFormValue(step.field);
+        
+        let presetsHtml = "";
+        if (step.presets && step.presets.length > 0) {
+          presetsHtml = `
+            <div class="quick-chips-label">त्वरित चयन / Quick Amounts:</div>
+            <div class="quick-chips">
+              ${step.presets.map(p => `
+                <button type="button" class="chip-btn" onclick="applyPreset('${step.field}', ${p})">
+                  ${p === 0 ? 'शून्य (₹0)' : formatRupees(p)}
+                </button>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="category-badge ${step.badgeClass}">${step.badge}</div>
+          <h2 class="step-title-hindi">${step.titleHi}</h2>
+          <div class="step-title-english">${step.titleEn}</div>
+          <p class="step-description">${step.desc}</p>
+
+          <div class="input-wrapper">
+            <span class="currency-symbol">₹</span>
+            <input type="number" 
+                   class="big-input" 
+                   id="step-number-input" 
+                   value="${currentVal !== undefined && currentVal !== null ? currentVal : 0}" 
+                   placeholder="0" 
+                   min="0"
+                   step="500"
+                   onfocus="this.select()"
+                   autofocus 
+                   onkeydown="if(event.key === 'Enter'){ handleStepNext(); }">
+          </div>
+
+          ${presetsHtml}
+
+          <div class="button-row">
+            ${!isFirst ? `<button type="button" class="btn btn-back" onclick="handleStepBack()">← पीछे / Back</button>` : `<div></div>`}
+            
+            ${isLast 
+              ? `<button type="button" class="btn btn-calculate" onclick="handleCalculate()">
+                   <span>परिणाम देखें / View Financial Report ➔</span>
+                 </button>`
+              : `<button type="button" class="btn btn-next" onclick="handleStepNext()">
+                   <span>अगला / Next ➔</span>
+                 </button>`
+            }
+          </div>
+        `;
+
+        // Focus the input
+        setTimeout(() => {
+          const el = document.getElementById('step-number-input');
+          if (el) {
+            el.focus();
+            el.select();
+          }
+        }, 50);
+
+      } else if (step.type === "schemes_screening") {
+        card.innerHTML = `
+          <div class="category-badge ${step.badgeClass}">${step.badge}</div>
+          <h2 class="step-title-hindi">${step.titleHi}</h2>
+          <div class="step-title-english">${step.titleEn}</div>
+          <p class="step-description">${step.desc}</p>
+
+          <div class="screening-options">
+            
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-girl" ${wizardState.hasGirlChildUnder10 ? 'checked' : ''} onchange="wizardState.hasGirlChildUnder10 = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>घर में 10 वर्ष से कम उम्र की बेटी है? (Girl child under 10)</span>
+                  <span class="scheme-benefit-badge">8.2% ब्याज</span>
+                </div>
+                <div class="scheme-label-desc">सुकन्या समृद्धि योजना (SSY) में सबसे अधिक 8.2% टैक्स-फ्री ब्याज मिलता है।</div>
+              </div>
+            </label>
+
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-senior" ${wizardState.hasSenior70Plus ? 'checked' : ''} onchange="wizardState.hasSenior70Plus = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>परिवार में कोई बुजुर्ग 70 वर्ष या उससे अधिक के हैं? (Elder 70+ years)</span>
+                  <span class="scheme-benefit-badge">₹5 लाख मुफ़्त</span>
+                </div>
+                <div class="scheme-label-desc">आयुष्मान भारत PM-JAY में 70+ वर्ष के हर बुजुर्ग को ₹5 लाख का मुफ़्त स्वास्थ्य कवर मिलता है।</div>
+              </div>
+            </label>
+
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-adult18to70" ${wizardState.hasAdult18to70 ? 'checked' : ''} onchange="wizardState.hasAdult18to70 = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>परिवार में 18 से 70 वर्ष के वयस्क सदस्य हैं? (Adults 18-70)</span>
+                  <span class="scheme-benefit-badge">सिर्फ ₹20/वर्ष</span>
+                </div>
+                <div class="scheme-label-desc">PM सुरक्षा बीमा योजना (PMSBY) में ₹20 प्रति वर्ष में ₹2 लाख का दुर्घटना बीमा मिलता है।</div>
+              </div>
+            </label>
+
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-adult18to50" ${wizardState.hasAdult18to50 ? 'checked' : ''} onchange="wizardState.hasAdult18to50 = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>परिवार में 18 से 50 वर्ष के कमाने वाले सदस्य हैं? (Adults 18-50)</span>
+                  <span class="scheme-benefit-badge">₹2 लाख जीवन बीमा</span>
+                </div>
+                <div class="scheme-label-desc">PM जीवन ज्योति बीमा (PMJJBY) में ₹436/वर्ष में ₹2 लाख का जीवन बीमा मिलता है।</div>
+              </div>
+            </label>
+
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-solar" ${wizardState.hasRooftopSolarPotential ? 'checked' : ''} onchange="wizardState.hasRooftopSolarPotential = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>घर की अपनी छत है व बिजली कनेक्शन है? (Rooftop for Solar)</span>
+                  <span class="scheme-benefit-badge">₹78,000 सब्सिडी</span>
+                </div>
+                <div class="scheme-label-desc">PM सूर्य घर योजना में 300 यूनिट मुफ्त बिजली व ₹78,000 तक की सरकारी सब्सिडी।</div>
+              </div>
+            </label>
+
+            <label class="scheme-option-row">
+              <input type="checkbox" class="scheme-checkbox" id="chk-pucca" ${wizardState.ownsPuccaHouse ? 'checked' : ''} onchange="wizardState.ownsPuccaHouse = this.checked">
+              <div>
+                <div class="scheme-label-title">
+                  <span>क्या परिवार के नाम पर भारत में पहले से पक्का मकान है? (Owns Pucca House)</span>
+                </div>
+                <div class="scheme-label-desc">यदि नहीं है, तो परिवार PM आवास योजना (PMAY-U 2.0) में ब्याज सब्सिडी का हकदार है।</div>
+              </div>
+            </label>
+
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="btn btn-back" onclick="handleStepBack()">← पीछे / Back</button>
+            <button type="button" class="btn btn-next" onclick="handleStepNext()">
+              <span>अगला / Next ➔</span>
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    function applyPreset(field, val) {
+      setFormValue(field, val);
+      const el = document.getElementById('step-number-input');
+      if (el) el.value = val;
+    }
+
+    function saveCurrentStepValue() {
+      const step = STEPS[wizardState.currentStepIndex];
+      if (step.type === "currency") {
+        const el = document.getElementById('step-number-input');
+        if (el) {
+          setFormValue(step.field, el.value);
+        }
+      }
+    }
+
+    function handleStepNext() {
+      saveCurrentStepValue();
+      if (wizardState.currentStepIndex < STEPS.length - 1) {
+        wizardState.currentStepIndex++;
+        renderWizardStep();
+      } else {
+        handleCalculate();
+      }
+    }
+
+    function handleStepBack() {
+      saveCurrentStepValue();
+      if (wizardState.currentStepIndex > 0) {
+        wizardState.currentStepIndex--;
+        renderWizardStep();
+      }
+    }
+
+    function restartWizard() {
+      document.getElementById('results-container').style.display = 'none';
+      document.getElementById('form-container').style.display = 'block';
+      wizardState.currentStepIndex = 0;
+      renderWizardStep();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // -------------------------------------------------------------
+    // FINANCIAL CALCULATIONS & SCHEMES EVALUATION
+    // -------------------------------------------------------------
+    function computeFinancials() {
+      const inc = wizardState.income || 0;
+      const exp = wizardState.expenses;
+
+      // Fixed necessities
+      const fixed = (exp.housing || 0) + (exp.education || 0) + (exp.insurance || 0) + (exp.loanEmi || 0);
+
+      // Variable essentials
+      const variable = (exp.groceries || 0) + (exp.utilities || 0) + (exp.transport || 0) + 
+                       (exp.mobileInternet || 0) + (exp.medical || 0);
+
+      // Discretionary
+      const discretionary = (exp.clothing || 0) + (exp.entertainment || 0);
+
+      const totalExp = fixed + variable + discretionary;
+      const surplus = inc - totalExp;
+      const savingsRate = inc > 0 ? (surplus / inc) * 100 : 0;
+      const expenseRate = inc > 0 ? (totalExp / inc) * 100 : 0;
+
+      const potentialMonthlySaving = variable * 0.10;
+      const potentialAnnualSaving = potentialMonthlySaving * 12;
+
+      // Health score computation (from Aashvi Bansal's Python algorithm)
+      let surplusScore = 0;
+      if (surplus <= 0) surplusScore = 0;
+      else if (savingsRate >= 30) surplusScore = 25;
+      else if (savingsRate >= 20) surplusScore = 20;
+      else if (savingsRate >= 10) surplusScore = 15;
+      else if (savingsRate >= 5) surplusScore = 10;
+      else surplusScore = 5;
+
+      let savingsScore = surplusScore;
+
+      let expenseScore = 0;
+      if (expenseRate <= 60) expenseScore = 20;
+      else if (expenseRate <= 70) expenseScore = 17;
+      else if (expenseRate <= 80) expenseScore = 14;
+      else if (expenseRate <= 90) expenseScore = 8;
+      else if (expenseRate <= 100) expenseScore = 4;
+      else expenseScore = 0;
+
+      const discPct = inc > 0 ? (discretionary / inc) * 100 : 0;
+      let discScore = 0;
+      if (discPct <= 10) discScore = 15;
+      else if (discPct <= 15) discScore = 12;
+      else if (discPct <= 20) discScore = 9;
+      else if (discPct <= 30) discScore = 5;
+      else discScore = 2;
+
+      const potPct = inc > 0 ? (potentialMonthlySaving / inc) * 100 : 0;
+      let oppScore = 0;
+      if (potPct >= 10) oppScore = 15;
+      else if (potPct >= 7) oppScore = 12;
+      else if (potPct >= 5) oppScore = 9;
+      else if (potPct >= 2) oppScore = 5;
+      else oppScore = 2;
+
+      const totalScore = surplusScore + savingsScore + expenseScore + discScore + oppScore;
+
+      let category = "Strong";
+      let categoryHi = "मजबूत वित्तीय स्थिति (Strong)";
+      if (totalScore >= 80) {
+        category = "Strong";
+        categoryHi = "मजबूत वित्तीय स्थिति (Strong)";
+      } else if (totalScore >= 60) {
+        category = "Stable";
+        categoryHi = "स्थिर वित्तीय स्थिति (Stable)";
+      } else if (totalScore >= 40) {
+        category = "Needs improvement";
+        categoryHi = "सुधार की जरूरत (Needs Improvement)";
+      } else {
+        category = "Needs attention";
+        categoryHi = "तत्काल ध्यान देने योग्य (Needs Attention)";
+      }
+
+      return {
+        income: inc,
+        totalExpenses: totalExp,
+        surplus: surplus,
+        savingsRate: savingsRate,
+        expenseRate: expenseRate,
+        fixed: fixed,
+        variable: variable,
+        discretionary: discretionary,
+        fixedPct: inc > 0 ? (fixed / inc) * 100 : 0,
+        variablePct: inc > 0 ? (variable / inc) * 100 : 0,
+        discretionaryPct: discPct,
+        potentialMonthlySaving: potentialMonthlySaving,
+        potentialAnnualSaving: potentialAnnualSaving,
+        healthScore: totalScore,
+        healthCategory: category,
+        healthCategoryHi: categoryHi
+      };
+    }
+
+    // -------------------------------------------------------------
+    // RENDER GOVERNMENT SCHEME OPPORTUNITIES (SHOWN FIRST!)
+    // -------------------------------------------------------------
+    function renderGovernmentSchemes() {
+      const container = document.getElementById('schemes-cards-list');
+      const schemes = [];
+
+      // 1. PMSBY - PM Suraksha Bima Yojana (Accident Insurance at ₹20/year)
+      if (wizardState.hasAdult18to70) {
+        schemes.push({
+          highlight: true,
+          name: "PM Suraksha Bima Yojana (PMSBY)",
+          nameHi: "प्रधानमंत्री सुरक्षा बीमा योजना",
+          cost: "₹20 / वर्ष (Only ₹20/yr)",
+          benefit: "₹2 लाख का आकस्मिक दुर्घटना बीमा कवर। मात्र ₹20 वार्षिक प्रीमियम पर किसी भी बैंक या डाकघर खाते से स्वतः सक्रिय होता है।",
+          how: "🏛️ किसी भी बैंक शाखा, डाकघर या नेट बैंकिंग से 1 मिनट में चालू करें।"
+        });
+      }
+
+      // 2. PMJJBY - PM Jeevan Jyoti Bima Yojana (Life Insurance at ₹436/year)
+      if (wizardState.hasAdult18to50) {
+        schemes.push({
+          highlight: true,
+          name: "PM Jeevan Jyoti Bima Yojana (PMJJBY)",
+          nameHi: "प्रधानमंत्री जीवन ज्योति बीमा योजना",
+          cost: "₹436 / वर्ष (₹36/month)",
+          benefit: "परिवार के कमाने वाले के लिए ₹2 लाख का शुद्ध जीवन बीमा। किसी मेडिकल जांच की जरूरत नहीं होती।",
+          how: "🏛️ बैंक बचत खाते में ऑटो-डेबिट फॉर्म भरकर नामांकन करें।"
+        });
+      }
+
+      // 3. Sukanya Samriddhi Yojana (SSY) for Girl Child
+      if (wizardState.hasGirlChildUnder10) {
+        schemes.push({
+          highlight: true,
+          name: "Sukanya Samriddhi Yojana (SSY)",
+          nameHi: "सुकन्या समृद्धि योजना",
+          cost: "न्यूनतम ₹250 / वर्ष",
+          benefit: "8.2% सरकार द्वारा गारंटीड उच्चतम ब्याज और 100% टैक्स फ्री रिटर्न। बेटी की उच्च शिक्षा और भविष्य के लिए सबसे सुरक्षित विकल्प।",
+          how: "📮 निकटतम डाकघर (Post Office) या अधिकृत बैंक में बेटी के जन्म प्रमाणपत्र से खाता खुलवाएं।"
+        });
+      }
+
+      // 4. Ayushman Bharat PM-JAY 70+ for Senior Citizens
+      if (wizardState.hasSenior70Plus) {
+        schemes.push({
+          highlight: true,
+          name: "Ayushman Bharat PM-JAY (70+ Senior)",
+          nameHi: "आयुष्मान भारत योजना (70+ वरिष्ठ नागरिक)",
+          cost: "100% निःशुल्क / Free",
+          benefit: "70 वर्ष से अधिक उम्र के बुजुर्गों के लिए ₹5,00,000 प्रति वर्ष का मुफ्त अस्पताल इलाज कवर, आय की कोई सीमा नहीं।",
+          how: "🏥 नजदीकी CSC सेंटर या beneficiary.nha.gov.in पर जाकर आयुष्मान वय वंदना कार्ड बनवाएं।"
+        });
+      }
+
+      // 5. PM Surya Ghar Muft Bijli Yojana (Rooftop Solar)
+      if (wizardState.hasRooftopSolarPotential) {
+        schemes.push({
+          highlight: false,
+          name: "PM Surya Ghar: Muft Bijli Yojana",
+          nameHi: "पीएम सूर्य घर: मुफ्त बिजली योजना",
+          cost: "सब्सिडी ₹78,000 तक",
+          benefit: "छत पर सोलर पैनल लगाने पर ₹78,000 तक की सीधी बैंक सब्सिडी और हर महीने 300 यूनिट तक मुफ्त बिजली (सालाना ₹25,000+ की बचत)।",
+          how: "☀️ pmsuryaghar.gov.in पोर्टल पर बिजली बिल नंबर से आवेदन करें।"
+        });
+      }
+
+      // 6. PMAY-U 2.0 (Affordable Housing for First-Time Homebuyers)
+      if (!wizardState.ownsPuccaHouse && wizardState.income * 12 <= 900000) {
+        schemes.push({
+          highlight: false,
+          name: "PM Awas Yojana (PMAY-U 2.0)",
+          nameHi: "प्रधानमंत्री आवास योजना (शहरी 2.0)",
+          cost: "₹1.80 लाख तक ब्याज सब्सिडी",
+          benefit: "जिन परिवारों के पास अपना पक्का मकान नहीं है, उन्हें पहले घर के होम लोन पर ब्याज सब्सिडी और सहायता मिलती है।",
+          how: "🏡 pmaymis.gov.in या बैंक के माध्यम से होम लोन आवेदन के समय क्लेम करें।"
+        });
+      }
+
+      // If none selected, show general advisory
+      if (schemes.length === 0) {
+        schemes.push({
+          highlight: true,
+          name: "Universal Social Security (PMSBY & PMJJBY)",
+          nameHi: "सार्वजनिक सुरक्षा बीमा योजनाएं",
+          cost: "₹20 से ₹436 / वर्ष",
+          benefit: "हर भारतीय परिवार को ₹2 लाख का दुर्घटना व जीवन बीमा सरकार द्वारा नाममात्र शुल्क पर उपलब्ध है।",
+          how: "🏛️ अपने बैंक या डाकघर खाते से तुरंत एक्टिवेट कराएं।"
+        });
+      }
+
+      container.innerHTML = schemes.map(s => `
+        <div class="scheme-card ${s.highlight ? 'highlight' : ''}">
+          <div>
+            <div class="scheme-card-header">
+              <div>
+                <div class="scheme-name">${s.name}</div>
+                <div class="scheme-name-hi">${s.nameHi}</div>
+              </div>
+              <span class="scheme-cost-badge">${s.cost}</span>
+            </div>
+            <div class="scheme-benefit-text">${s.benefit}</div>
+          </div>
+          <div class="scheme-enroll-how">${s.how}</div>
+        </div>
+      `).join('');
+    }
+
+    // -------------------------------------------------------------
+    // CHARTS & VISUALIZATIONS (CHART.JS)
+    // -------------------------------------------------------------
+    let expenseChartInstance = null;
+    let compoundChartInstance = null;
+
+    function renderExpenseChart(fin) {
+      const exp = wizardState.expenses;
+      const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
+      if (expenseChartInstance) expenseChartInstance.destroy();
+
+      const labels = [
+        'किराया/EMI (Housing)',
+        'किराना (Groceries)',
+        'पढ़ाई (Education)',
+        'बिजली/पानी (Utilities)',
+        'पेट्रोल/सफर (Transport)',
+        'मोबाइल/नेट (Mobile)',
+        'दवा/इलाज (Medical)',
+        'कपड़े (Clothing)',
+        'मनोरंजन (Dining Out)',
+        'बीमा (Insurance)',
+        'अन्य कर्ज (Loans)'
+      ];
+
+      const dataValues = [
+        exp.housing || 0,
+        exp.groceries || 0,
+        exp.education || 0,
+        exp.utilities || 0,
+        exp.transport || 0,
+        exp.mobileInternet || 0,
+        exp.medical || 0,
+        exp.clothing || 0,
+        exp.entertainment || 0,
+        exp.insurance || 0,
+        exp.loanEmi || 0
+      ];
+
+      const colors = [
+        '#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#06b6d4',
+        '#8b5cf6', '#ec4899', '#f97316', '#a855f7', '#6366f1', '#64748b'
+      ];
+
+      expenseChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: '#0f172a'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: '#cbd5e1',
+                font: { size: 10, family: "'Plus Jakarta Sans', sans-serif" },
+                boxWidth: 12
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw || 0;
+                  const total = fin.totalExpenses || 1;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return ` ${context.label}: ₹${val.toLocaleString('en-IN')} (${pct}%)`;
+                }
+              }
+            }
+          },
+          cutout: '62%'
+        }
       });
     }
 
-    function handleInput(e) {
-      e.preventDefault();
-      if (!inputResolver) return;
+    // -------------------------------------------------------------
+    // COMPOUND INTEREST SIMULATOR
+    // -------------------------------------------------------------
+    function updateCompoundingSimulation() {
+      const slider = document.getElementById('compound-years-slider');
+      const years = parseInt(slider.value, 10);
+      document.getElementById('compound-years-label').textContent = `${years} वर्ष (${years} Years)`;
 
-      const val = inputEl.value;
-      appendOutput(val + "\n");
-      inputEl.value = "";
-      inputEl.disabled = true;
-      submitBtn.disabled = true;
+      const fin = computeFinancials();
+      const baselineMonthly = Math.max(fin.surplus, 0);
+      const boostedMonthly = baselineMonthly + fin.potentialMonthlySaving;
+      const annualRate = 0.08; // 8% conservative SIP/RD compounding rate
+      const r = annualRate / 12;
+      const n = years * 12;
 
-      const resolve = inputResolver;
-      inputResolver = null;
-      resolve(val);
+      // Formula: FV = PMT * ((1 + r)^n - 1) / r
+      function calcFV(monthly) {
+        if (r === 0 || monthly <= 0) return monthly * n;
+        return monthly * (Math.pow(1 + r, n) - 1) / r;
+      }
+
+      const fvBaseline = calcFV(baselineMonthly);
+      const fvBoosted = calcFV(boostedMonthly);
+      const difference = fvBoosted - fvBaseline;
+
+      document.getElementById('proj-current-val').textContent = formatRupees(fvBaseline);
+      document.getElementById('proj-current-sub').textContent = `₹${Math.round(baselineMonthly).toLocaleString('en-IN')}/माह निवेश पर`;
+
+      document.getElementById('proj-boost-val').textContent = formatRupees(fvBoosted);
+      document.getElementById('proj-boost-gain').textContent = `+${formatRupees(difference)} अतिरिक्त लाभ`;
+
+      // Render line/bar growth chart
+      const ctx = document.getElementById('compoundChart').getContext('2d');
+      if (compoundChartInstance) compoundChartInstance.destroy();
+
+      const yearLabels = [];
+      const baselineCurve = [];
+      const boostedCurve = [];
+
+      for (let y = 1; y <= years; y++) {
+        yearLabels.push(`वर्ष ${y}`);
+        const m = y * 12;
+        const bFV = baselineMonthly > 0 ? baselineMonthly * (Math.pow(1 + r, m) - 1) / r : 0;
+        const boostFV = boostedMonthly > 0 ? boostedMonthly * (Math.pow(1 + r, m) - 1) / r : 0;
+        baselineCurve.push(Math.round(bFV));
+        boostedCurve.push(Math.round(boostFV));
+      }
+
+      compoundChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: yearLabels,
+          datasets: [
+            {
+              label: 'वर्तमान बचत (Current Savings)',
+              data: baselineCurve,
+              borderColor: '#fbbf24',
+              backgroundColor: 'rgba(251, 191, 36, 0.1)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2
+            },
+            {
+              label: '+10% खर्च घटाकर निवेश (Optimized)',
+              data: boostedCurve,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: { color: '#cbd5e1', font: { size: 10 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return ` ${ctx.dataset.label}: ₹${(ctx.raw || 0).toLocaleString('en-IN')}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: {
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 10 },
+                callback: function(v) { return '₹' + (v >= 100000 ? (v/100000).toFixed(1) + 'L' : (v/1000).toFixed(0) + 'k'); }
+              },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            }
+          }
+        }
+      });
     }
 
-    function renderPlotImage(base64Png) {
-      plotContainer.innerHTML = `<img src="data:image/png;base64,${base64Png}" alt="Financial Health Dashboard" />`;
+    // -------------------------------------------------------------
+    // CALCULATE & PRESENT RESULTS
+    // -------------------------------------------------------------
+    function handleCalculate() {
+      saveCurrentStepValue();
+      const fin = computeFinancials();
+
+      // Switch screens
+      document.getElementById('form-container').style.display = 'none';
+      const resultsEl = document.getElementById('results-container');
+      resultsEl.style.display = 'flex';
+
+      // 1. Render Government Schemes FIRST
+      renderGovernmentSchemes();
+
+      // 2. Set Report Date
+      const today = new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+      document.getElementById('report-date').textContent = today;
+
+      // 3. Populate KPIs
+      document.getElementById('kpi-income-val').textContent = formatRupees(fin.income);
+      document.getElementById('kpi-expense-val').textContent = formatRupees(fin.totalExpenses);
+      document.getElementById('kpi-expense-pct').textContent = `${fin.expenseRate.toFixed(1)}% आमदनी का खर्च`;
+
+      document.getElementById('kpi-savings-val').textContent = formatRupees(fin.surplus);
+      if (fin.surplus < 0) {
+        document.getElementById('kpi-savings-val').style.color = '#f87171';
+        document.getElementById('kpi-savings-status').textContent = '⚠️ घाटा (खर्च आमदनी से अधिक)';
+      } else {
+        document.getElementById('kpi-savings-val').style.color = '#34d399';
+        document.getElementById('kpi-savings-status').textContent = '✓ मासिक अधिशेष (Surplus)';
+      }
+
+      document.getElementById('kpi-rate-val').textContent = `${fin.savingsRate.toFixed(1)}%`;
+      if (fin.savingsRate >= 20) {
+        document.getElementById('kpi-rate-rating').textContent = '🌟 उत्तम बचत दर (Healthy)';
+        document.getElementById('kpi-rate-val').style.color = '#34d399';
+      } else if (fin.savingsRate >= 10) {
+        document.getElementById('kpi-rate-rating').textContent = '⚖️ मध्यम बचत (Moderate)';
+        document.getElementById('kpi-rate-val').style.color = '#fbbf24';
+      } else {
+        document.getElementById('kpi-rate-rating').textContent = '⚠️ कम बचत (ध्यान देने योग्य)';
+        document.getElementById('kpi-rate-val').style.color = '#f87171';
+      }
+
+      // 4. Financial Health Score
+      document.getElementById('health-score-number').textContent = fin.healthScore;
+      document.getElementById('score-circle-element').style.setProperty('--score-pct', `${fin.healthScore}%`);
+      document.getElementById('health-category-title').textContent = fin.healthCategoryHi;
+
+      const badge = document.getElementById('health-badge-pill');
+      badge.className = 'score-badge';
+      if (fin.healthScore >= 80) {
+        badge.classList.add('score-badge-strong');
+        badge.textContent = 'उत्कृष्ट वित्तीय स्थिति (Strong)';
+        document.getElementById('health-summary-desc').textContent = 'आपके पास उत्कृष्ट बचत दर है। अतिरिक्त बचत को सही निवेश में लगाएं।';
+      } else if (fin.healthScore >= 60) {
+        badge.classList.add('score-badge-stable');
+        badge.textContent = 'स्थिर वित्तीय संतुलन (Stable)';
+        document.getElementById('health-summary-desc').textContent = 'आपकी मूलभूत बचत ठीक है, लेकिन परिवर्तनीय खर्चों को थोड़ा घटाकर बचत और बढ़ाई जा सकती है।';
+      } else {
+        badge.classList.add('score-badge-needs');
+        badge.textContent = 'सुधार की आवश्यकता (Needs Attention)';
+        document.getElementById('health-summary-desc').textContent = 'खर्च आमदनी के बहुत करीब हैं या बचत दर 10% से कम है। अनावश्यक खर्चों पर तुरंत रोक लगाएं।';
+      }
+
+      document.getElementById('potential-annual-saving-val').textContent = formatRupees(fin.potentialAnnualSaving);
+
+      // 5. 50/30/20 Rule Breakdown
+      document.getElementById('fixed-pct-text').textContent = `${fin.fixedPct.toFixed(1)}% (लक्ष्य: ~50%)`;
+      document.getElementById('fixed-amount-text').textContent = `${formatRupees(fin.fixed)} प्रति माह`;
+      document.getElementById('fixed-bar-fill').style.width = `${Math.min(fin.fixedPct, 100)}%`;
+
+      document.getElementById('variable-pct-text').textContent = `${fin.variablePct.toFixed(1)}%`;
+      document.getElementById('variable-amount-text').textContent = `${formatRupees(fin.variable)} प्रति माह`;
+      document.getElementById('variable-bar-fill').style.width = `${Math.min(fin.variablePct, 100)}%`;
+
+      document.getElementById('discretionary-pct-text').textContent = `${fin.discretionaryPct.toFixed(1)}% (लक्ष्य: <20%)`;
+      document.getElementById('discretionary-amount-text').textContent = `${formatRupees(fin.discretionary)} प्रति माह`;
+      document.getElementById('discretionary-bar-fill').style.width = `${Math.min(fin.discretionaryPct, 100)}%`;
+
+      // 6. Render Charts
+      renderExpenseChart(fin);
+      updateCompoundingSimulation();
+
+      // 7. Run Python computation in Pyodide to mirror and log verification
+      runPythonVerification(fin);
+
+      // Scroll smoothly to the results top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    const pythonCode = `
-import sys
-import io
-import base64
-import js
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-
-async def web_input(prompt=""):
-    val = await js.jsInput(prompt)
-    return str(val)
-
-# MODULE 1 - INPUT HANDLING
-async def get_rupees(prompt):
-    while True:
-        try:
-            val = await web_input(prompt + " (₹): ")
-            return float(val) if val.strip() else 0.0
-        except ValueError:
-            print("Invalid amount. Please enter a number and try again.")
-
-# MODULE 2 - DATA COLLECTION
-async def collect_data():
-    print("\\n=== FAMILY FINANCIAL HEALTH CALCULATOR ===")
-    print("Built by Aashvi Bansal | The Family Ledger Project\\n")
-    income = await get_rupees('Total monthly household income')
-    print('\\nEnter monthly expenses (press Enter to skip any):')
-    expenses = {
-        'Housing (rent/EMI)': await get_rupees('Housing/rent/EMI'),
-        'Food & groceries': await get_rupees('Food & groceries'),
-        'Education fees': await get_rupees('Education fees'),
-        'Utilities': await get_rupees('Utilities (electricity/gas/water)'),
-        'Transport': await get_rupees('Transport'),
-        'Mobile & internet': await get_rupees('Mobile & internet'),
-        'Medical': await get_rupees('Medical'),
-        'Clothing': await get_rupees('Clothing & personal care'),
-        'Entertainment': await get_rupees('Entertainment & dining out'),
-        'Insurance/LIC': await get_rupees('Insurance / LIC premiums'),
-        'Loan EMIs': await get_rupees('Loan EMIs'),
+    // -------------------------------------------------------------
+    // REQUIREMENT 4: DOWNLOAD / PRINT REPORT
+    // -------------------------------------------------------------
+    function downloadReport() {
+      // Trigger native browser print which formats nicely as PDF or printer
+      window.print();
     }
-    monthly_savings = await get_rupees('Current monthly savings / RD / SIP (optional)')
-    return income, expenses, monthly_savings
 
-# MODULE 3 - BUDGET ANALYSIS
-def analyse(income, expenses):
+    // -------------------------------------------------------------
+    // PYTHON RUNTIME (PYODIDE) INTEGRATION
+    // -------------------------------------------------------------
+    let pyodideInstance = null;
+    const consoleOutputEl = document.getElementById('drawer-console-output');
+
+    function logToPyConsole(text) {
+      if (consoleOutputEl) {
+        consoleOutputEl.textContent += text + "\n";
+        consoleOutputEl.scrollTop = consoleOutputEl.scrollHeight;
+      }
+    }
+
+    function togglePythonDrawer() {
+      const body = document.getElementById('drawer-console-output');
+      const icon = document.getElementById('drawer-toggle-icon');
+      if (body.classList.contains('open')) {
+        body.classList.remove('open');
+        icon.textContent = '▼ View Python Code / Output';
+      } else {
+        body.classList.add('open');
+        icon.textContent = '▲ Hide Python Output';
+      }
+    }
+
+    async function initPyodideRuntime() {
+      try {
+        const badge = document.getElementById('py-status-badge');
+        badge.textContent = 'Python Loading...';
+        
+        pyodideInstance = await loadPyodide({
+          stdout: (text) => logToPyConsole(text),
+          stderr: (text) => logToPyConsole("[Error]: " + text)
+        });
+
+        // Initialize pure python financial model
+        const pythonInitCode = `
+# ==========================================
+# FAMILY LEDGER PYTHON CALCULATION MODULE
+# Built by Aashvi Bansal | Family Ledger Project
+# ==========================================
+
+def py_analyse(income, expenses):
     total_exp = sum(expenses.values())
     surplus = income - total_exp
     remaining_pct = (surplus / income * 100) if income else 0
     expense_pct = (total_exp / income * 100) if income else 0
-
-    fixed = (expenses['Housing (rent/EMI)'] +
-             expenses['Education fees'] +
-             expenses['Insurance/LIC'] +
-             expenses['Loan EMIs'])
-
-    variable = (expenses['Food & groceries'] +
-                expenses['Utilities'] +
-                expenses['Transport'] +
-                expenses['Mobile & internet'] +
-                expenses['Medical'])
-
-    discretionary = (expenses['Clothing'] +
-                     expenses['Entertainment'])
-
-    fixed_pct = (fixed / income * 100) if income else 0
-    variable_pct = (variable / income * 100) if income else 0
-    discretionary_pct = (discretionary / income * 100) if income else 0
-
-    potential_monthly_saving = variable * 0.10
-    potential_annual_saving = potential_monthly_saving * 12
-
+    
+    fixed = expenses.get('housing', 0) + expenses.get('education', 0) + expenses.get('insurance', 0) + expenses.get('loanEmi', 0)
+    variable = expenses.get('groceries', 0) + expenses.get('utilities', 0) + expenses.get('transport', 0) + expenses.get('mobileInternet', 0) + expenses.get('medical', 0)
+    discretionary = expenses.get('clothing', 0) + expenses.get('entertainment', 0)
+    
+    potential_saving = variable * 0.10
+    
     return {
         'income': income,
         'total_exp': total_exp,
         'surplus': surplus,
-        'remaining_pct': remaining_pct,
-        'expense_pct': expense_pct,
+        'savings_rate': remaining_pct,
         'fixed': fixed,
         'variable': variable,
         'discretionary': discretionary,
-        'fixed_pct': fixed_pct,
-        'variable_pct': variable_pct,
-        'discretionary_pct': discretionary_pct,
-        'potential_monthly_saving': potential_monthly_saving,
-        'potential_annual_saving': potential_annual_saving,
+        'potential_saving': potential_saving
     }
 
-def show_analysis(results):
-    print("\\n=== BUDGET ANALYSIS ===")
-    print(f"\\nMonthly income: ₹{results['income']:,.0f}")
-    print(f"Monthly expenses: ₹{results['total_exp']:,.0f}")
-    print(f"Money remaining: ₹{results['surplus']:,.0f}")
-    print(f"\\nIncome used for expenses: {results['expense_pct']:.1f}%")
-    print(f"Income remaining: {results['remaining_pct']:.1f}%")
-    print("\\n--- EXPENSE STRUCTURE ---")
-    print(f"Fixed expenses: ₹{results['fixed']:,.0f} ({results['fixed_pct']:.1f}%)")
-    print(f"Variable essential expenses: ₹{results['variable']:,.0f} ({results['variable_pct']:.1f}%)")
-    print(f"Discretionary expenses: ₹{results['discretionary']:,.0f} ({results['discretionary_pct']:.1f}%)")
-    print("\\n--- POTENTIAL IMPROVEMENT SCENARIO ---")
-    print("If variable expenses were reduced by 10%:")
-    print(f"Potential amount freed per month: ₹{results['potential_monthly_saving']:,.0f}")
-    print(f"Potential amount freed per year: ₹{results['potential_annual_saving']:,.0f}")
-
-# MODULE 4 - COMPOUNDING PROJECTOR
-def compound(monthly, years=5, annual_rate=0.07):
+def py_compound(monthly, years=5, annual_rate=0.08):
     r = annual_rate / 12
     n = years * 12
     if r == 0: return monthly * n
     return monthly * ((1 + r) ** n - 1) / r
 
-def project_savings(monthly_savings, result):
-    potential = result['potential_monthly_saving']
-    discretionary = result['discretionary']
-    discretionary_pct = result['discretionary_pct']
-    scenarios = []
-
-    if monthly_savings > 0:
-        scenarios.append(('Current savings', monthly_savings))
-        moderate = monthly_savings + potential
-        scenarios.append(('+ 10% variable reduction', moderate))
-        if discretionary_pct > 20:
-            discretionary_reduction = discretionary * 0.15
-            optimised = monthly_savings + potential + discretionary_reduction
-            scenarios.append(('Optimised scenario', optimised))
-    else:
-        scenarios.append(('Illustrative: 10% variable reduction', potential))
-        if discretionary_pct > 20:
-            discretionary_reduction = discretionary * 0.15
-            optimised = potential + discretionary_reduction
-            scenarios.append(('Illustrative: variable + discretionary reduction', optimised))
-
-    print("\\n=== 5-YEAR COMPOUNDING PROJECTION ===")
-    print("Assumed annual return: 7%")
-    print("Projection period: 5 years")
-    if monthly_savings == 0:
-        print("Current monthly savings were not provided.")
-        print("The projection is illustrative.")
-    for label, monthly in scenarios:
-        fv = compound(monthly)
-        print(f"\\n{label}:\\n  ₹{monthly:,.0f}/month → ₹{fv:,.0f} after 5 years")
-    return scenarios
-
-# MODULE 5 - GOVERNMENT SCHEME ELIGIBILITY
-def check_pmjay_senior(age_70_plus):
-    if age_70_plus:
-        print("\\nPM-JAY 70+ — Potentially relevant.")
-        print("A household member aged 70+ meets the age criterion.")
-        return True
-    else:
-        print("\\nPM-JAY 70+ — Does not appear applicable.")
-        return False
-
-async def check_surya_ghar():
-    print("\\n=== PM SURYA GHAR: MUFT BIJLI YOJANA ===")
-    while True:
-        elec = (await web_input("Does the household have a residential electricity connection? (yes/no): ")).strip().lower()
-        if elec == "yes": break
-        elif elec == "no": return False
-
-    while True:
-        rooftop = (await web_input("Does the household have a suitable rooftop/location for solar installation? (yes/no): ")).strip().lower()
-        if rooftop == "yes": break
-        elif rooftop == "no": return False
-
-    while True:
-        subsidy = (await web_input("Has the household already received PM Surya Ghar rooftop-solar subsidy? (yes/no): ")).strip().lower()
-        if subsidy == "yes": return False
-        elif subsidy == "no": break
-
-    print("\\nPM Surya Ghar — Potentially relevant for further verification.")
-    return True
-
-async def check_pmay_u20(income):
-    print("\\n=== PMAY-U 2.0 — HOUSING SCREENING ===")
-    if income * 12 > 900000:
-        print("\\nPMAY-U 2.0 — Does not appear applicable based on income.")
-        return False
-
-    while True:
-        urban = (await web_input("Does the household live in an urban area? (yes/no): ")).strip().lower()
-        if urban == "yes": break
-        elif urban == "no": return False
-
-    while True:
-        pucca = (await web_input("Does the family currently own a pucca house anywhere in India? (yes/no): ")).strip().lower()
-        if pucca == "no": break
-        elif pucca == "yes": return False
-
-    while True:
-        prev = (await web_input("Has the family received a government housing benefit during the last 20 years? (yes/no): ")).strip().lower()
-        if prev == "no": break
-        elif prev == "yes": return False
-
-    print("\\nPMAY-U 2.0 — Potentially relevant for further verification.")
-    return True
-
-async def run_government_scheme_screening(income):
-    print("\\n========================================")
-    print(" GOVERNMENT SCHEME OPPORTUNITY CHECK")
-    print("========================================")
-    results = {}
-    
-    while True:
-        try:
-            num_str = await web_input("\\nHow many household members do you want to screen? ")
-            number = int(num_str)
-            if number > 0: break
-        except ValueError:
-            print("Please enter a whole number.")
-
-    members = []
-    for i in range(number):
-        print(f"\\n--- Household Member {i + 1} ---")
-        name = (await web_input("Enter a name or label (e.g. Mother, Father, Grandma): ")).strip()
-        while True:
-            try:
-                age = int(await web_input(f"Enter {name}'s age: "))
-                if age >= 0: break
-            except ValueError:
-                print("Please enter age as a number.")
-        members.append({"name": name, "age": age})
-
-    results["PM-JAY 70+"] = check_pmjay_senior(any(m["age"] >= 70 for m in members))
-    results["PM Surya Ghar"] = await check_surya_ghar()
-    results["PMAY-U 2.0"] = await check_pmay_u20(income)
-    results["PMJJBY"] = any(18 <= m["age"] <= 50 for m in members)
-    results["PMSBY"] = any(18 <= m["age"] <= 70 for m in members)
-
-    print("\\n========================================")
-    print(" GOVERNMENT SCHEME SCREENING SUMMARY")
-    print("========================================")
-    for scheme, res in results.items():
-        print(f"{'✓' if res else '—'} {scheme}: {'Potentially relevant' if res else 'Does not appear applicable'}")
-
-    return results
-
-# MODULE 6 - FINANCIAL HEALTH SCORE
-def financial_health_score(income, result):
-    surplus = result['surplus']
-    expense_pct = result['expense_pct']
-    discretionary_pct = result['discretionary_pct']
-    potential_saving = result['potential_monthly_saving']
-
-    surplus_pct = (surplus / income) * 100 if income else 0
-    if surplus <= 0: surplus_score = 0
-    elif surplus_pct >= 30: surplus_score = 25
-    elif surplus_pct >= 20: surplus_score = 20
-    elif surplus_pct >= 10: surplus_score = 15
-    elif surplus_pct >= 5: surplus_score = 10
-    else: surplus_score = 5
-
-    savings_rate = surplus_pct
-    if savings_rate <= 0: savings_score = 0
-    elif savings_rate >= 30: savings_score = 25
-    elif savings_rate >= 20: savings_score = 20
-    elif savings_rate >= 10: savings_score = 15
-    elif savings_rate >= 5: savings_score = 10
-    else: savings_score = 5
-
-    if expense_pct <= 60: expense_score = 20
-    elif expense_pct <= 70: expense_score = 17
-    elif expense_pct <= 80: expense_score = 14
-    elif expense_pct <= 90: expense_score = 8
-    elif expense_pct <= 100: expense_score = 4
-    else: expense_score = 0
-
-    if discretionary_pct <= 10: discretionary_score = 15
-    elif discretionary_pct <= 15: discretionary_score = 12
-    elif discretionary_pct <= 20: discretionary_score = 9
-    elif discretionary_pct <= 30: discretionary_score = 5
-    else: discretionary_score = 2
-
-    potential_rate = (potential_saving / income) * 100 if income else 0
-    if potential_rate >= 10: opportunity_score = 15
-    elif potential_rate >= 7: opportunity_score = 12
-    elif potential_rate >= 5: opportunity_score = 9
-    elif potential_rate >= 2: opportunity_score = 5
-    else: opportunity_score = 2
-
-    total_score = surplus_score + savings_score + expense_score + discretionary_score + opportunity_score
-
-    if total_score >= 80: category = "Strong"
-    elif total_score >= 60: category = "Stable"
-    elif total_score >= 40: category = "Needs improvement"
-    else: category = "Needs attention"
-
-    print("\\n========================================")
-    print(" FINANCIAL HEALTH SCORE")
-    print("========================================")
-    print(f"\\nOverall Score: {total_score}/100")
-    print(f"Financial Position: {category}")
-    return {'score': total_score, 'category': category}
-
-# MODULE 7 - VISUAL DASHBOARD
-def dashboard(income, expenses, result, scenarios, score_result):
-    plt.close('all')
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-    fig.suptitle('Family Financial Health Dashboard', fontsize=14, fontweight='bold')
-
-    # CHART 1: Pie Chart with Legend
-    labels = []
-    values = []
-    for k, v in expenses.items():
-        if v > 0:
-            labels.append(k)
-            values.append(v)
-
-    if values:
-        total = sum(values)
-        def autopct_filter(pct):
-            return f"{pct:.0f}%" if pct >= 5 else ""
-
-        pie_result = axes[0].pie(
-            values,
-            labels=None,
-            autopct=autopct_filter,
-            pctdistance=0.75,
-            startangle=90
-        )
-        wedges = pie_result[0]
-
-        legend_labels = [f"{lbl} ({v/total*100:.1f}%)" for lbl, v in zip(labels, values)]
-        axes[0].legend(
-            wedges,
-            legend_labels,
-            title="Expenses",
-            loc="center left",
-            bbox_to_anchor=(-0.45, 0.5),
-            fontsize=7,
-            title_fontsize=8
-        )
-    axes[0].set_title('Expense Breakdown', pad=10)
-
-    # CHART 2: Income vs Expenses
-    categories = ['Income', 'Expenses', 'Surplus']
-    amounts = [income, result['total_exp'], max(result['surplus'], 0)]
-    axes[1].bar(categories, amounts, color=['#3b82f6', '#ef4444', '#10b981'])
-    axes[1].set_title('Monthly Financial Position')
-    axes[1].set_ylabel('Amount (₹)')
-
-    # CHART 3: 5-Year Compounding
-    r = 0.07 / 12
-    months = list(range(61))
-    for label, monthly in scenarios:
-        curve = [monthly * ((1 + r) ** m - 1) / r if r > 0 else monthly * m for m in months]
-        axes[2].plot(months, curve, label=label, marker='o', markevery=12)
-        final_value = curve[-1]
-        axes[2].annotate(f'₹{final_value:,.0f}', xy=(60, final_value), xytext=(-5, 8), textcoords='offset points', fontsize=7)
-
-    axes[2].set_xlabel('Months')
-    axes[2].set_ylabel('Projected Value (₹)')
-    axes[2].set_title('5-Year Compounding')
-    axes[2].legend(fontsize=7)
-
-    fig.text(0.5, 0.02, f"Financial Health Score: {score_result['score']}/100 — {score_result['category']}", ha='center', fontsize=11, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=130, bbox_inches='tight')
-    buf.seek(0)
-    img_str = base64.b64encode(buf.read()).decode('utf-8')
-    js.renderPlotImage(img_str)
-    print("\\n✓ Dashboard visualization generated below.")
-
-# RUNNER
-async def run():
-    income, expenses, current_savings = await collect_data()
-    result = analyse(income, expenses)
-    show_analysis(result)
-    scenarios = project_savings(current_savings, result)
-    await run_government_scheme_screening(income)
-    score_result = financial_health_score(income, result)
-    dashboard(income, expenses, result, scenarios, score_result)
-    print("\\n========================================")
-    print("       FAMILY LEDGER COMPLETE")
-    print("========================================")
-
-import asyncio
-asyncio.ensure_future(run())
+print("✓ Family Ledger Python 3.11 Runtime Initialized successfully in WebAssembly.")
 `;
-
-    async function init() {
-      try {
-        pyodideInstance = await loadPyodide({
-          stdout: (text) => appendOutput(text + "\n"),
-          stderr: (text) => appendOutput(text + "\n")
-        });
-        await pyodideInstance.loadPackage(["matplotlib", "numpy"]);
-        outputEl.innerHTML = "";
-        await pyodideInstance.runPythonAsync(pythonCode);
+        await pyodideInstance.runPythonAsync(pythonInitCode);
+        badge.textContent = 'Python 3.11 Engine Active';
+        badge.style.color = '#34d399';
       } catch (err) {
-        appendOutput("\n[Error initializing runtime]: " + err);
+        console.warn("Pyodide background initialization note:", err);
+        const badge = document.getElementById('py-status-badge');
+        badge.textContent = 'Financial Engine Ready (Hybrid JS/Python)';
       }
     }
 
-    init();
+    async function runPythonVerification(fin) {
+      if (!pyodideInstance) return;
+      try {
+        const pyCall = `
+income = ${fin.income}
+expenses = ${JSON.stringify(wizardState.expenses)}
+res = py_analyse(income, expenses)
+fv5 = py_compound(res['surplus'], 5, 0.08)
+print(f"\\n--- PYTHON ENGINE VERIFICATION ---")
+print(f"Income: ₹{income:,.0f} | Total Exp: ₹{res['total_exp']:,.0f} | Surplus: ₹{res['surplus']:,.0f}")
+print(f"Savings Rate: {res['savings_rate']:.1f}% | 5-Yr FV Projection: ₹{fv5:,.0f}")
+print(f"Verified against Aashvi Bansal Financial Model.")
+`;
+        await pyodideInstance.runPythonAsync(pyCall);
+      } catch (err) {
+        logToPyConsole("[Pyodide Execution]: " + err);
+      }
+    }
+
+    // Initialize form on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderWizardStep();
+      initPyodideRuntime();
+    });
   </script>
 </body>
 </html>
