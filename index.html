@@ -1141,12 +1141,12 @@
       <div class="wizard-progress-card" style="margin-bottom: 16px;">
         <div class="progress-meta">
           <span class="progress-step-text" id="wizard-step-label">
-            <span>कदम 1 / 13</span> • <span>Step 1 of 13</span>
+            <span>कदम 1 / 10</span> • <span>Step 1 of 10</span>
           </span>
-          <span class="progress-pct-text" id="wizard-pct-label">8% पूर्ण</span>
+          <span class="progress-pct-text" id="wizard-pct-label">10% पूर्ण</span>
         </div>
         <div class="progress-track">
-          <div class="progress-fill" id="wizard-progress-bar" style="width: 8%;"></div>
+          <div class="progress-fill" id="wizard-progress-bar" style="width: 10%;"></div>
         </div>
       </div>
 
@@ -1284,7 +1284,7 @@
             <!-- Fixed Necessities (Target: ~50%) -->
             <div class="rule-item">
               <div class="rule-item-labels">
-                <span>स्थिर अनिवार्य खर्च / Fixed Necessities (किराया, स्कूल फीस, ईएमआई)</span>
+                <span>स्थिर अनिवार्य खर्च / Fixed Necessities (किराया, स्कूल फीस, ईएमआई व बीमा)</span>
                 <strong id="fixed-pct-text">0%</strong>
               </div>
               <div class="rule-item-bar">
@@ -1296,7 +1296,7 @@
             <!-- Variable Essentials -->
             <div class="rule-item">
               <div class="rule-item-labels">
-                <span>दैनिक जरूरी खर्च / Variable Essentials (किराना, बिजली, पेट्रोल, दवा)</span>
+                <span>दैनिक जरूरी खर्च / Variable Essentials (किराना, बिजली, गैस, मोबाइल, पेट्रोल, दवा)</span>
                 <strong id="variable-pct-text">0%</strong>
               </div>
               <div class="rule-item-bar">
@@ -1308,7 +1308,7 @@
             <!-- Discretionary (Target: <20%) -->
             <div class="rule-item">
               <div class="rule-item-labels">
-                <span>इच्छा व शौक खर्च / Discretionary (कपड़े, बाहर खाना, घूमना)</span>
+                <span>इच्छा व शौक खर्च / Discretionary (कपड़े, बाहर खाना, घूमना व मनोरंजन)</span>
                 <strong id="discretionary-pct-text">0%</strong>
               </div>
               <div class="rule-item-bar">
@@ -1434,19 +1434,16 @@
       expenses: {
         housing: 0,
         groceries: 0,
-        education: 0,
         utilities: 0,
+        education: 0,
         transport: 0,
-        mobileInternet: 0,
         medical: 0,
-        clothing: 0,
-        entertainment: 0,
-        insurance: 0,
-        loanEmi: 0
+        lifestyle: 0,
+        loansInsurance: 0
       }
     };
 
-    // Wizard step definitions (Guided form: 1 field at a time!)
+    // Wizard step definitions (Streamlined to 10 natural family steps!)
     const STEPS = [
       {
         id: "income",
@@ -1491,25 +1488,25 @@
         type: "currency"
       },
       {
+        id: "utilities",
+        badge: "दैनिक खर्च / Variable Essential",
+        badgeClass: "badge-variable",
+        titleHi: "बिजली, गैस, पानी व मोबाइल/इंटरनेट बिल / Utilities & Connectivity Bills",
+        titleEn: "Electricity, LPG cylinder, water, mobile recharges, and broadband WiFi",
+        desc: "घर के सभी उपयोगिता बिल: बिजली, रसोई गैस सिलेंडर, पानी, मोबाइल फोन रिचार्ज व वाईफाई/टीवी का कुल मासिक खर्च।",
+        field: "expenses.utilities",
+        presets: [2000, 3500, 5500, 8500],
+        type: "currency"
+      },
+      {
         id: "education",
         badge: "स्थिर खर्च / Fixed Need",
         badgeClass: "badge-fixed",
         titleHi: "बच्चों की पढ़ाई व स्कूल फीस / Education & School Fees",
         titleEn: "School, college fees, books, tuition, and coaching",
-        desc: "बच्चों की मासिक स्कूल फीस, ट्यूशन, किताबें व यूनिफॉर्म का औसत खर्च।",
+        desc: "बच्चों की मासिक स्कूल फीस, ट्यूशन, किताबें व यूनिफॉर्म का औसत खर्च (बच्चे न हों तो '0' छोड़ें)।",
         field: "expenses.education",
         presets: [0, 2000, 5000, 10000],
-        type: "currency"
-      },
-      {
-        id: "utilities",
-        badge: "दैनिक खर्च / Variable Essential",
-        badgeClass: "badge-variable",
-        titleHi: "बिजली, गैस सिलेंडर व पानी / Electricity, Gas & Water",
-        titleEn: "Monthly utility bills for home",
-        desc: "बिजली का बिल, रसोई गैस (LPG सिलेंडर), पानी व मेंटेनेंस खर्च।",
-        field: "expenses.utilities",
-        presets: [1500, 2500, 4000, 6000],
         type: "currency"
       },
       {
@@ -1518,20 +1515,9 @@
         badgeClass: "badge-variable",
         titleHi: "आवागमन, पेट्रोल व बस/ट्रेन / Transport & Commute",
         titleEn: "Fuel, bike/car maintenance, bus/metro pass, auto fares",
-        desc: "दफ्तर, बाजार आने-जाने का पेट्रोल, बस किराया, ऑटो या ट्रेन का खर्च।",
+        desc: "दफ्तर, बाजार आने-जाने का पेट्रोल, बस किराया, ऑटो या ट्रेन का मासिक खर्च।",
         field: "expenses.transport",
-        presets: [1000, 2500, 4000, 7000],
-        type: "currency"
-      },
-      {
-        id: "mobileInternet",
-        badge: "दैनिक खर्च / Variable Essential",
-        badgeClass: "badge-variable",
-        titleHi: "मोबाइल रिचार्ज, टीवी व इंटरनेट / Mobile & Internet",
-        titleEn: "Mobile recharges, broadband WiFi, DTH TV",
-        desc: "परिवार के सभी मोबाइल फोन रिचार्ज, वाईफाई ब्रॉडबैंड व टीवी डिश खर्च।",
-        field: "expenses.mobileInternet",
-        presets: [500, 1000, 1500, 2500],
+        presets: [1000, 2500, 4500, 7500],
         type: "currency"
       },
       {
@@ -1540,53 +1526,31 @@
         badgeClass: "badge-variable",
         titleHi: "दवा, डॉक्टर व स्वास्थ्य / Medical & Healthcare",
         titleEn: "Medicines, doctor checkups, diagnostic tests",
-        desc: "बुजुर्गों की नियमित दवाइयां, डॉक्टर फीस या अचानक होने वाले स्वास्थ्य खर्च।",
+        desc: "बुजुर्गों की नियमित दवाइयां, डॉक्टर फीस या स्वास्थ्य जांच का औसत मासिक खर्च।",
         field: "expenses.medical",
         presets: [500, 1500, 3000, 5000],
         type: "currency"
       },
       {
-        id: "clothing",
+        id: "lifestyle",
         badge: "शौक व इच्छा / Discretionary",
         badgeClass: "badge-discretionary",
-        titleHi: "कपड़े व व्यक्तिगत देखभाल / Clothing & Personal Care",
-        titleEn: "Clothes, footwear, salon, cosmetics, grooming",
-        desc: "कपड़े, जूते, सैलून व अन्य व्यक्तिगत सौंदर्य प्रसाधनों का औसत मासिक खर्च।",
-        field: "expenses.clothing",
-        presets: [500, 1500, 3000, 6000],
+        titleHi: "शौक, कपड़े, बाहर खाना व मनोरंजन / Lifestyle, Clothing & Dining",
+        titleEn: "Clothes, footwear, restaurants, movies, outings, and personal shopping",
+        desc: "कपड़े, जूते, होटल/बाहर खाना, सिनेमा, सैर-सपाटा व व्यक्तिगत शौक का कुल मासिक खर्च।",
+        field: "expenses.lifestyle",
+        presets: [500, 2000, 4500, 8000],
         type: "currency"
       },
       {
-        id: "entertainment",
-        badge: "शौक व इच्छा / Discretionary",
-        badgeClass: "badge-discretionary",
-        titleHi: "मनोरंजन व बाहर खाना / Dining Out & Entertainment",
-        titleEn: "Restaurants, street food, movies, family outings",
-        desc: "होटल में खाना, बाहर नाश्ता, सिनेमा, सैर-सपाटा या ऑनलाइन फूड ऑर्डर।",
-        field: "expenses.entertainment",
-        presets: [0, 1000, 2500, 5000],
-        type: "currency"
-      },
-      {
-        id: "insurance",
+        id: "loansInsurance",
         badge: "स्थिर खर्च / Fixed Need",
         badgeClass: "badge-fixed",
-        titleHi: "बीमा व एलआईसी प्रीमियम / Insurance & LIC Premiums",
-        titleEn: "Life, health insurance, or LIC policy installments",
-        desc: "जीवन बीमा (LIC), स्वास्थ्य बीमा (Health Insurance) की मासिक किस्त।",
-        field: "expenses.insurance",
-        presets: [0, 1000, 2500, 5000],
-        type: "currency"
-      },
-      {
-        id: "loanEmi",
-        badge: "स्थिर खर्च / Fixed Need",
-        badgeClass: "badge-fixed",
-        titleHi: "अन्य कर्ज / लोन ईएमआई / Other Loans or Credit EMIs",
-        titleEn: "Personal loan, bike/car loan, or gold loan EMIs",
-        desc: "कोई बाइक लोन, पर्सनल लोन, फोन ईएमआई या किसी रिश्तेदार की किस्त।",
-        field: "expenses.loanEmi",
-        presets: [0, 2000, 5000, 10000],
+        titleHi: "कर्ज ईएमआई व बीमा/LIC किस्त / Loans, EMIs & Insurance Premiums",
+        titleEn: "Bank/personal loans, vehicle EMIs, and LIC/health insurance installments",
+        desc: "पर्सनल लोन, बाइक/कार लोन, फोन ईएमआई, बैंक किस्त या जीवन/स्वास्थ्य बीमा (LIC) की कुल मासिक किस्त (यदि नहीं है तो '0' छोड़ें)।",
+        field: "expenses.loansInsurance",
+        presets: [0, 2500, 6000, 12000, 20000],
         type: "currency"
       }
     ];
@@ -1835,14 +1799,13 @@
       const exp = wizardState.expenses;
 
       // Fixed necessities
-      const fixed = (exp.housing || 0) + (exp.education || 0) + (exp.insurance || 0) + (exp.loanEmi || 0);
+      const fixed = (exp.housing || 0) + (exp.education || 0) + (exp.loansInsurance || 0);
 
       // Variable essentials
-      const variable = (exp.groceries || 0) + (exp.utilities || 0) + (exp.transport || 0) +
-        (exp.mobileInternet || 0) + (exp.medical || 0);
+      const variable = (exp.groceries || 0) + (exp.utilities || 0) + (exp.transport || 0) + (exp.medical || 0);
 
       // Discretionary
-      const discretionary = (exp.clothing || 0) + (exp.entertainment || 0);
+      const discretionary = (exp.lifestyle || 0);
 
       const totalExp = fixed + variable + discretionary;
       const surplus = inc - totalExp;
@@ -2045,36 +2008,30 @@
       if (expenseChartInstance) expenseChartInstance.destroy();
 
       const labels = [
-        'किराया/EMI (Housing)',
-        'किराना (Groceries)',
-        'पढ़ाई (Education)',
-        'बिजली/पानी (Utilities)',
-        'पेट्रोल/सफर (Transport)',
-        'मोबाइल/नेट (Mobile)',
-        'दवा/इलाज (Medical)',
-        'कपड़े (Clothing)',
-        'मनोरंजन (Dining Out)',
-        'बीमा (Insurance)',
-        'अन्य कर्ज (Loans)'
+        'किराया/होम लोन (Housing)',
+        'किराना व राशन (Groceries)',
+        'बिजली, गैस व बिल (Utilities)',
+        'बच्चों की पढ़ाई (Education)',
+        'पेट्रोल व सफर (Transport)',
+        'दवा व इलाज (Medical)',
+        'शौक व बाहर खाना (Lifestyle)',
+        'ईएमआई व बीमा (Loans & Ins.)'
       ];
 
       const dataValues = [
         exp.housing || 0,
         exp.groceries || 0,
-        exp.education || 0,
         exp.utilities || 0,
+        exp.education || 0,
         exp.transport || 0,
-        exp.mobileInternet || 0,
         exp.medical || 0,
-        exp.clothing || 0,
-        exp.entertainment || 0,
-        exp.insurance || 0,
-        exp.loanEmi || 0
+        exp.lifestyle || 0,
+        exp.loansInsurance || 0
       ];
 
       const colors = [
-        '#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#06b6d4',
-        '#8b5cf6', '#ec4899', '#f97316', '#a855f7', '#6366f1', '#64748b'
+        '#ef4444', '#f59e0b', '#06b6d4', '#3b82f6',
+        '#10b981', '#ec4899', '#a855f7', '#6366f1'
       ];
 
       expenseChartInstance = new Chart(ctx, {
@@ -2368,9 +2325,9 @@ def py_analyse(income, expenses):
     remaining_pct = (surplus / income * 100) if income else 0
     expense_pct = (total_exp / income * 100) if income else 0
     
-    fixed = expenses.get('housing', 0) + expenses.get('education', 0) + expenses.get('insurance', 0) + expenses.get('loanEmi', 0)
-    variable = expenses.get('groceries', 0) + expenses.get('utilities', 0) + expenses.get('transport', 0) + expenses.get('mobileInternet', 0) + expenses.get('medical', 0)
-    discretionary = expenses.get('clothing', 0) + expenses.get('entertainment', 0)
+    fixed = expenses.get('housing', 0) + expenses.get('education', 0) + expenses.get('loansInsurance', 0)
+    variable = expenses.get('groceries', 0) + expenses.get('utilities', 0) + expenses.get('transport', 0) + expenses.get('medical', 0)
+    discretionary = expenses.get('lifestyle', 0)
     
     potential_saving = variable * 0.10
     
